@@ -1918,7 +1918,7 @@ function renderCV(m){
   // ---- header ----
   const hd=el('div','cv-head');
   const nm=el('div','cv-name'); nm.appendChild(editText(()=>PROF('name')||'Your Name',v=>prof.name=v,{ph:'Your Name'})); hd.appendChild(nm);
-  const cr=el('div','cv-cred'); cr.appendChild(profField('credentials','e.g. M.D. Candidate, Perelman School of Medicine · B.A., Cornell University')); hd.appendChild(cr);
+  const cr=el('div','cv-cred'); cr.appendChild(profField('credentials','e.g. M.D. Candidate, School of Medicine · B.A., University')); hd.appendChild(cr);
   const joinDot=(parent,nodes)=>{ nodes.forEach((node,i)=>{ if(i)parent.appendChild(el('span',null,'·')); const sp=el('span'); sp.appendChild(node); parent.appendChild(sp); }); };
   const bio=el('div','cv-contact'); joinDot(bio,[
     linkField('email','Email','you@email.edu',{mailto:true,showValue:true}),
