@@ -1,0 +1,32 @@
+{
+  "labs": [
+    "My Research",
+    "Education",
+    "Experience",
+    "Activities",
+    "Funding / Scholarship",
+    "Peer Review Activity"
+  ],
+  "tracks": ["funding", "data", "analysis", "poster", "paper"],
+  "updated": "",
+  "groups": [],
+  "projects": [],
+  "entries": [],
+  "grants": [],
+  "clerical": [],
+  "specimens": [],
+  "inbox": [],
+  "flags": { "specimens": false },
+  "profile": {
+    "name": "",
+    "credentials": "",
+    "email": "",
+    "phone": "",
+    "location": "",
+    "scholar": "",
+    "orcid": "",
+    "linkedin": "",
+    "links": [],
+    "cvHidden": {}
+  }
+}

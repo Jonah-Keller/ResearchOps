@@ -1,0 +1,2292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ResearchOps</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --sunk:#eef1f5; --ink:#1d2430; --muted:#6b7688; --faint:#9aa4b4;
+    --line:#e6e9ef; --accent:#3b6fd4; --accent-soft:#edf3ff; --star:#e0a91b;
+    --grey:#aab2c0; --amber:#d99411; --blue:#3b6fd4; --green:#2f9e63; --red:#d1495b; --violet:#7a4fd4;
+    --radius:10px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#0f1218; --panel:#181c24; --sunk:#12151c; --ink:#e7ecf3; --muted:#8f9bb0; --faint:#5f6a7d;
+          --line:#262d38; --accent:#5b8def; --accent-soft:#1c2740;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .app{display:flex;min-height:100vh}
+
+  .side{width:236px;flex:none;border-right:1px solid var(--line);background:var(--panel);
+    position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column;gap:2px;padding:14px 12px}
+  .brand{font-weight:700;font-size:15px;padding:2px 8px 10px}
+  .brand small{display:block;font-weight:500;color:var(--faint);font-size:11px;margin-top:2px}
+  #search{margin:0 4px 8px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font-size:13px}
+  .navlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);padding:8px 10px 4px;font-weight:700}
+  .navitem{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13px}
+  .navitem:hover{background:var(--sunk)} .navitem.active{background:var(--accent-soft);color:var(--accent)}
+  .navitem .n{margin-left:auto;font-weight:600;color:var(--faint);font-size:12px}.navitem.active .n{color:var(--accent)}
+  .sidefoot{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:8px}
+  .toggle{display:flex;align-items:center;gap:8px;padding:4px 10px;font-size:12.5px;color:var(--muted);cursor:pointer}
+  .btn{padding:8px 12px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px}
+  .btn.ghost{background:transparent;color:var(--accent)} .btn.sm{padding:5px 10px;font-size:12px}
+  .savebadge{font-size:12px;color:var(--faint);text-align:center}
+  .savebadge.dirty{color:var(--amber)} .savebadge.ok{color:var(--green)} .savebadge.err{color:var(--red)}
+
+  main{flex:1;min-width:0;padding:18px 26px 90px;max-width:940px}
+  .paste{margin-bottom:16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);overflow:hidden}
+  .paste summary{cursor:pointer;padding:9px 14px;font-weight:600;font-size:13px;list-style:none;color:var(--muted)}
+  .paste summary::-webkit-details-marker{display:none}
+  .paste .body{padding:0 14px 14px;display:flex;flex-direction:column;gap:9px}
+  textarea#pasteText{width:100%;min-height:48px;resize:vertical;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:inherit}
+  .prow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px}
+  .hint{color:var(--faint);font-size:12px}
+  .ppf{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--faint)}
+  .ppl{font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .asst-key{margin-bottom:8px}
+  .asst-results{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+  .asst-card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel)}
+  .asst-cardtitle{font-weight:700;font-size:14px} .asst-conf{font-weight:500;font-size:11px;color:var(--faint)}
+  .asst-change{display:flex;gap:8px;align-items:baseline;padding:3px 0;font-size:13px;cursor:pointer}
+  .asst-change input{margin-top:2px}
+  .asst-divider{text-align:center;color:var(--faint);font-size:12px;margin:18px 0 8px}
+  .asst-match{font-weight:600;font-size:13px;margin-top:6px}
+
+  .subtabs{display:flex;gap:4px;margin:0 0 14px;border-bottom:1px solid var(--line)}
+  .subtab{padding:8px 16px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13.5px;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .subtab:hover{color:var(--ink)} .subtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .subtab .cnt{margin-left:6px;font-size:11px;color:var(--faint);font-weight:500}
+  .lhead{display:flex;align-items:baseline;gap:14px;margin:2px 2px 14px;flex-wrap:wrap}
+  .lhead h1{margin:0;font-size:20px}
+  .lhead .stats{color:var(--muted);font-size:12.5px;display:flex;gap:12px;flex-wrap:wrap}
+  .lhead .stats b{color:var(--ink)}
+
+  .group{margin:0 0 4px}
+  .ghead{display:flex;align-items:center;gap:9px;padding:9px 6px 7px;cursor:pointer;border-bottom:1px solid var(--line)}
+  .ghead .caret{color:var(--faint);font-size:11px;width:10px;transition:transform .12s}
+  .ghead.collapsed .caret{transform:rotate(-90deg)}
+  .ghead .gname{font-weight:700;font-size:13.5px}
+  .ghead .gmeta{color:var(--faint);font-size:12px;margin-left:auto;display:flex;gap:8px;align-items:center}
+  .fundchip{font-size:11px;color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent);padding:1px 8px;border-radius:20px;font-weight:600}
+
+  .substage{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:9px 6px 3px 22px}
+  .substage .ssdot{width:7px;height:7px;border-radius:50%;flex:none}
+  .substage .cnt{color:var(--faint);font-weight:500}
+  .prow2{display:flex;align-items:center;gap:10px;padding:9px 8px;border-bottom:1px solid var(--line);cursor:pointer}
+  .prow2:hover{background:var(--panel)} .prow2.open{background:var(--panel)}
+  .prow2[draggable=true]{cursor:grab}
+  .prow2.dragover{box-shadow:inset 0 2px 0 var(--accent)}
+  .ghead.dragover{background:var(--accent-soft);border-radius:8px}
+  .navitem.dragover{background:var(--accent-soft);outline:1px dashed var(--accent)}
+  .grouped .prow2{padding-left:22px}
+  .star{border:none;background:transparent;cursor:pointer;font-size:14px;color:var(--faint);padding:0;line-height:1;flex:none}
+  .star.on{color:var(--star)}
+  .rmain{flex:1;min-width:0}
+  .rname{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;border-bottom:1px dashed transparent}
+  .rname:hover{border-bottom-color:var(--faint)}
+  .rnameinput{font:inherit;font-weight:600;font-size:14px;border:1px solid var(--accent);border-radius:6px;padding:2px 6px;width:100%;background:var(--bg);color:var(--ink)}
+  .archived .rname{color:var(--muted)}
+  .gmwrap{padding:0 6px 4px} .gmsel{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px}
+  .ctxmenu{position:fixed;z-index:100;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 28px rgba(15,20,35,.22);min-width:190px;padding:5px}
+  .ctxlbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);padding:5px 12px 3px;font-weight:700}
+  .ctxitem{padding:7px 12px;cursor:pointer;border-radius:6px;font-size:13px}
+  .ctxitem:hover{background:var(--sunk)} .ctxitem.cur{color:var(--accent);font-weight:600}
+  .ctxitem.danger{color:var(--red)} .ctxitem.danger:hover{background:var(--red);color:#fff}
+  .ctxsep{height:1px;background:var(--line);margin:5px 4px}
+  .rsub{font-size:12px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rsub .sdot{display:inline-block;width:6px;height:6px;border-radius:50%;vertical-align:1px;margin-right:4px}
+  .rsub .sep{color:var(--faint);margin:0 5px}
+  .countbadge{font-size:11px;color:var(--faint);flex:none;min-width:44px;text-align:right}
+  .rcaret{color:var(--faint);font-size:11px;flex:none;width:12px;text-align:center;transition:transform .12s}
+  .prow2.open .rcaret{transform:rotate(90deg)}
+
+  .detail{border-bottom:1px solid var(--line);background:var(--panel);padding:6px 16px 16px 22px}
+  .seclbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--faint);margin:15px 0 6px}
+  .kvrow{display:flex;gap:10px;align-items:baseline;padding:3px 0}
+  .kvrow .k{color:var(--faint);font-size:12px;min-width:88px;flex:none}
+  .kvrow .v{font-size:13px}
+  .editable{cursor:pointer;border-bottom:1px dashed transparent;padding:1px 3px;border-radius:5px}
+  .editable:hover{border-bottom-color:var(--faint);background:var(--sunk)}
+  .editable.empty{color:var(--faint);font-style:italic}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;color:#fff}
+  .pill.empty{background:transparent;border:1px dashed var(--line);color:var(--faint);font-weight:600;font-style:normal}
+  .inlineinput,.inlinesel{font:inherit;font-size:13px;padding:3px 6px;border:1px solid var(--accent);border-radius:6px;background:var(--bg);color:var(--ink)}
+  .inlinearea{display:block;width:100%;min-width:280px;min-height:52px;resize:vertical;line-height:1.5;text-align:left}
+
+  .pcard{border:1px solid var(--line);border-radius:9px;padding:8px 30px 8px 11px;margin:5px 0;position:relative;background:var(--bg)}
+  .pfields{display:flex;flex-wrap:wrap;gap:5px 18px}
+  .kvi{font-size:12px;color:var(--ink)} .kvi .k{color:var(--faint);margin-right:5px;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+  .pnote{margin-top:5px;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:baseline}
+  .pnote .k{color:var(--faint);font-size:11px;text-transform:uppercase}
+  .pcard>.x{position:absolute;top:7px;right:9px;border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:14px}
+  .pcard>.x:hover{color:var(--red)}
+  .preslbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;margin:6px 0 2px}
+  .presrow{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:2px 0}
+  .presrow>.x{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:13px}.presrow>.x:hover{color:var(--red)}
+  .entries{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+  .entry{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;position:relative}
+  .etitle{font-weight:700;font-size:15px} .emeta{display:flex;gap:6px 20px;flex-wrap:wrap;margin:5px 0 3px}
+  .enote{font-size:12px;color:var(--muted)} .enote .k{color:var(--faint);font-size:11px;text-transform:uppercase}
+  .entry>.del{position:absolute;top:9px;right:10px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px}
+  .entry>.del:hover{color:#fff;background:var(--red);border-color:var(--red)}
+  .grants{display:flex;flex-direction:column;gap:8px;margin:4px 0 8px}
+  .grantcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 30px 9px 13px;position:relative}
+  .grantcard>.x{position:absolute;top:8px;right:9px;border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:14px}.grantcard>.x:hover{color:var(--red)}
+
+  .worktrack{margin:7px 0}
+  .whead{display:flex;align-items:center;gap:9px}
+  .wtitle{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:capitalize;min-width:70px}
+  .tasks{display:flex;flex-direction:column;gap:1px;margin:3px 0 0 2px}
+  .task{display:flex;align-items:baseline;gap:7px;padding:2px 0;border-radius:6px}
+  .task:hover{background:var(--sunk)}
+  .task input[type=checkbox]{accent-color:var(--green);cursor:pointer;flex:none;align-self:flex-start;margin-top:3px}
+  .task .body{flex:1;min-width:0;cursor:text}
+  .task .who{color:var(--accent);font-weight:700}
+  .task.done .body{text-decoration:line-through;color:var(--faint)}
+  .task .x{visibility:hidden;border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:13px;flex:none}
+  .task:hover .x{visibility:visible} .task .x:hover{color:var(--red)}
+  .task .tcaret{color:var(--faint);font-size:10px;flex:none;transition:transform .12s;align-self:center}
+  .task .tcaret.open{transform:rotate(90deg)}
+  .task .mini{font-size:10.5px;color:var(--faint);margin-left:6px}
+  .taskdetail{margin:2px 0 8px 22px;border-left:2px solid var(--accent-soft);padding:6px 0 4px 12px;display:flex;flex-direction:column;gap:9px}
+  .tdflags{display:flex;gap:18px;flex-wrap:wrap} .tdflag{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);cursor:pointer}
+  .tdrow{display:flex;flex-direction:column;gap:3px}
+  .tdlbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700}
+  .tdinput{width:100%;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;padding:5px 8px}
+  .tdarea{width:100%;min-height:46px;resize:vertical;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;padding:6px 8px}
+  .linkrow,.subtask{display:flex;gap:7px;align-items:center;font-size:12.5px;padding:1px 0}
+  .linkrow a{color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .linkrow a:hover{text-decoration:underline}
+  .subtask.done .editable{text-decoration:line-through;color:var(--faint)}
+  .subtask .editable{flex:1}
+  .node .nodeadd{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:14px;font-weight:700;line-height:1}
+  .node .nodeadd:hover{color:var(--accent)}
+  .nodekids{margin-left:15px;border-left:1px solid var(--line);padding-left:8px}
+  .linkrow .x,.subtask .x{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:12px}
+  .linkrow .x:hover,.subtask .x:hover{color:var(--red)}
+  .subtask input[type=checkbox]{accent-color:var(--green)}
+  /* --- Asana tasks: priority + due + nested first-class subtasks --- */
+  .prio{font-size:9.5px;font-weight:800;letter-spacing:.03em;padding:1px 6px;border-radius:20px;color:#fff;flex:none;align-self:center;text-transform:uppercase}
+  .prio-high{background:var(--red)} .prio-med{background:var(--amber)} .prio-low{background:var(--blue)}
+  .duebadge{font-size:10.5px;font-weight:700;margin-left:7px;padding:0 6px;border-radius:20px;white-space:nowrap}
+  .duebadge.due-over{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
+  .duebadge.due-soon{background:color-mix(in srgb,var(--amber) 16%,transparent);color:var(--amber)}
+  .duebadge.due-ok{background:var(--sunk);color:var(--faint)}
+  .task.sub{margin-left:2px}
+  .taskdetail .tdgrid{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
+  .taskdetail .tdgrid .tdrow{min-width:120px}
+  .tddate{border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit;font-size:12.5px;padding:4px 7px}
+  .subtree{display:flex;flex-direction:column;margin-left:2px;border-left:1px solid var(--line);padding-left:9px}
+  .subtree .taskdetail{margin-left:16px}
+  /* --- Due-soon view --- */
+  .duegroup{font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--faint);margin:16px 0 6px}
+  .duerow{display:flex;align-items:center;gap:9px;padding:7px 8px;border:1px solid var(--line);border-radius:9px;margin-bottom:5px;cursor:pointer;background:var(--panel)}
+  .duerow:hover{border-color:var(--accent)}
+  .duerow .dtext{flex:1;min-width:0;font-size:13px}
+  .duerow .dproj{font-size:11px;color:var(--faint);flex:none;background:var(--sunk);padding:1px 8px;border-radius:20px}
+  .duesub{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 4px 2px}
+  /* quick capture + inbox rows */
+  .qcap{display:flex;flex-direction:column;gap:3px;margin:6px 0 12px}
+  .qcap-in{width:100%;box-sizing:border-box;font-size:14px;padding:11px 13px;border:1.5px solid var(--accent);border-radius:10px;background:var(--panel);color:var(--fg)}
+  .qcap-in::placeholder{color:var(--faint)}
+  .qcap-in:focus{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+  .qcap-hint{font-size:11px;color:var(--faint);padding-left:3px}
+  .duerow.inboxrow{cursor:default}
+  .duerow.inboxrow:hover{border-color:var(--line)}
+  .duerow .duechk{flex:none;width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+  .duerow .dedit{cursor:text}
+  .duerow .dprio{flex:none}
+  .duerow .dduedate{flex:none;font-size:11px;color:var(--faint);background:var(--sunk);border:1px solid var(--line);border-radius:7px;padding:2px 5px}
+  .duerow .dproj.inboxtag{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+  .duerow .x{flex:none;border:none;background:none;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:0 2px}
+  .duerow .x:hover{color:var(--red)}
+  .duewrap{margin-bottom:5px}
+  .duewrap .duerow{margin-bottom:0}
+  .dcaret{color:var(--faint);margin-right:7px;font-size:11px}
+  .dueexp{border:1px solid var(--line);border-top:none;border-radius:0 0 9px 9px;background:var(--sunk);padding:10px 12px 11px;margin:-1px 0 0}
+  .dexp-notes{font-size:12.5px;color:var(--muted);white-space:pre-wrap;margin-bottom:8px}
+  .dexp-meta{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:8px}
+  .dexp-kv{display:flex;align-items:center;gap:6px;font-size:12px}
+  .dexp-k{color:var(--faint);text-transform:uppercase;font-size:10px;letter-spacing:.05em}
+  .dexp-subs{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
+  .dexp-sub{display:flex;align-items:center;gap:7px;font-size:12.5px}
+  .dexp-sub input{accent-color:var(--accent)}
+  .dexp-subdone{text-decoration:line-through;color:var(--faint)}
+  .dexp-open{font-size:11px;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:7px;padding:3px 9px;cursor:pointer}
+  .dexp-open:hover{border-color:var(--accent);color:var(--accent)}
+  /* --- Specimen tracker --- */
+  .specnav{font-size:12.5px;color:var(--muted);background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:8px 12px;margin:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .flowbanner{font-size:12px;color:var(--muted);background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:10px 0;line-height:1.6}
+  .flowbanner b{color:var(--ink)} .flowbanner em{font-style:normal;font-weight:700;color:var(--accent)}
+  .flowbanner .pos{color:var(--green);font-weight:600} .flowbanner .neg{color:var(--violet);font-weight:600} .flowbanner .spa{color:var(--blue);font-weight:600}
+  .specsum{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}
+  .sumchip{font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:3px 11px} .sumchip b{color:var(--ink);font-size:13px}
+  .specfilters{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px} .specfilters .gmsel{width:auto;min-width:130px}
+  .specgrp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--faint);margin:16px 0 6px}
+  .specgrp-tog{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px}
+  .specgrp-tog:hover{background:var(--sunk)} .specgrp-tog .gcar{font-size:10px;width:10px} .specgrp-tog .gc{background:var(--sunk);color:var(--muted);border-radius:20px;padding:0 8px;font-size:11px;font-weight:700}
+  .specrow .clin.embolized{color:var(--red)}
+  .spectable{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+  .specrowwrap{border-bottom:1px solid var(--line);min-width:820px} .specrowwrap:last-child{border-bottom:none}
+  .specrow{display:grid;grid-template-columns:minmax(110px,1.3fr) minmax(120px,1.4fr) minmax(80px,1fr) 46px 50px 50px minmax(76px,.9fr) 188px 30px 30px;gap:8px;align-items:center;padding:5px 9px;font-size:12.5px;min-width:820px}
+  .specrow.spechead{background:var(--sunk);font-size:10px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:var(--faint)}
+  .specrow .sc{min-width:0;overflow:hidden}
+  .specrow .casecell{display:flex;flex-direction:column;line-height:1.25} .specrow .blk{font-size:10px;color:var(--faint)}
+  .specrow .designcell{display:flex;flex-direction:column;line-height:1.3} .specrow .dmeta{font-size:10px;color:var(--faint)}
+  .specrow .clin{font-size:11.5px;color:var(--muted)}
+  .specdetgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 14px;padding:8px 0}
+  /* flow diagram */
+  .flowwrap{margin:10px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+  .flowwrap>summary{cursor:pointer;padding:9px 12px;font-size:13px;list-style:none} .flowwrap>summary::-webkit-details-marker{display:none}
+  .flowwrap .fhint{color:var(--faint);font-size:11.5px;margin-left:8px}
+  .flowscroll{overflow-x:auto;padding:4px 12px 14px}
+  .flowdiag{display:flex;align-items:stretch;gap:8px;min-width:900px}
+  .flowdiag .fcol{display:flex;flex-direction:column;gap:6px;flex:1;min-width:150px} .flowdiag .fwide{flex:1.7;min-width:280px}
+  .flowdiag .fhdr{font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--faint);margin-bottom:2px}
+  .flowdiag .fbox{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12.5px;font-weight:700;line-height:1.35;background:var(--sunk)}
+  .flowdiag .fbox small{display:block;font-weight:400;color:var(--muted);font-size:11px;margin-top:3px}
+  .flowdiag .b-avm{border-left:3px solid var(--red)} .flowdiag .b-ctrl{border-left:3px solid var(--blue)} .flowdiag .b-gate{border-left:3px solid var(--amber)}
+  .flowdiag .farrow{display:flex;align-items:center;color:var(--faint);font-size:18px;font-weight:700;flex:none}
+  .flowdiag .flane{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12px;line-height:1.5;background:var(--sunk)}
+  .flowdiag .flane small{color:var(--muted);font-weight:400}
+  .flowdiag .l-fresh{border-left:3px solid var(--green)} .flowdiag .l-ffpe{border-left:3px solid var(--violet)}
+  .flowdiag .ltag{display:inline-block;font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-right:5px}
+  .flowdiag .l-fresh .ltag{color:var(--green)} .flowdiag .l-ffpe .ltag{color:var(--violet)}
+  .flowdiag .lsub{margin-top:4px;padding-top:4px;border-top:1px dashed var(--line);color:var(--faint);font-size:11px}
+  .flowdiag .ffig{font-size:11.5px;padding:4px 8px;border:1px solid var(--line);border-radius:7px;background:var(--sunk);line-height:1.3} .flowdiag .ffig b{color:var(--accent);margin-right:4px} .flowdiag .ffig em{color:var(--faint);font-style:normal;font-size:10.5px}
+  .specrow.spechead:hover{background:var(--sunk)} .specrowwrap:hover .specrow{background:var(--sunk)}
+  .tchip{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:6px;border:1px solid var(--line);color:var(--faint);cursor:pointer;user-select:none}
+  .tchip.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .asycell{display:flex;gap:3px} .asy{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 4px;border-radius:5px;border:1px solid var(--line);cursor:pointer;user-select:none;min-width:26px;text-align:center}
+  .asy.on{border-color:transparent}
+  .notebtn{border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--faint)} .notebtn:hover{color:var(--accent)}
+  .specnote{padding:0 9px 9px 9px;background:var(--sunk)}
+  /* --- Omics Plan tab: two arms · two pools --- */
+  .ogate{border-left:3px solid var(--amber)!important}
+  .oarrow{text-align:center;color:var(--faint);font-size:10.5px;font-weight:800;margin:8px 0;text-transform:uppercase;letter-spacing:.06em}
+  .ocols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:860px){.ocols{grid-template-columns:1fr}}
+  .ocol{display:flex;flex-direction:column;gap:9px}
+  .ocolh{padding:9px 13px;border-radius:10px;background:var(--sunk);border:1px solid var(--line)} .ocolh b{font-size:14px} .ocolh small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .ocolh.op-fresh{border-left:3px solid var(--green)} .ocolh.op-ffpe{border-left:3px solid var(--violet)}
+  .ostep{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:10px;padding:9px 12px}
+  .ostep.st-done{border-left-color:var(--green)} .ostep.st-prog{border-left-color:var(--amber)} .ostep.st-plan{border-left-color:var(--grey)} .ostep.st-gap{border-left-color:var(--red)}
+  .ostep.open{box-shadow:0 1px 8px rgba(20,30,50,.06)}
+  .ohd{display:flex;align-items:center;gap:8px}
+  .ohz{display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer}
+  .ocar{color:var(--faint);font-size:10px;flex:none;transition:transform .12s} .ocar.open{transform:rotate(90deg)}
+  .onum{background:var(--sunk);color:var(--muted);font-weight:800;border-radius:7px;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+  .otitle{font-weight:700;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ometachips{display:flex;gap:5px;margin-left:auto;flex:none} .omchip{font-size:10px;color:var(--muted);background:var(--sunk);border-radius:20px;padding:1px 8px;white-space:nowrap}
+  .obody{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .ofield{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap}
+  .ofl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;color:var(--faint)}
+  .otasks{margin:2px 0 4px}
+  .otaskhead{font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--faint);margin:10px 0 3px;display:flex;gap:6px;align-items:center}
+  .otaskhead .x{visibility:hidden} .otaskhead:hover .x{visibility:visible}
+  .otask{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
+  .otnum{color:var(--faint);font-weight:700;min-width:20px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+  .otdot{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--grey);cursor:pointer;flex:none;box-sizing:border-box}
+  .otask.p-plan .otdot,.obranch.p-plan .otdot{background:transparent;border-color:var(--grey)}
+  .otask.p-prog .otdot,.obranch.p-prog .otdot{background:var(--amber);border-color:var(--amber)}
+  .otask.p-done .otdot,.obranch.p-done .otdot{background:var(--green);border-color:var(--green)}
+  .otask.p-gap .otdot,.obranch.p-gap .otdot{background:var(--red);border-color:var(--red)}
+  .otask.p-done{color:var(--muted)} .otask.p-done .editable{text-decoration:line-through}
+  .otask .x{visibility:hidden} .otask:hover .x{visibility:visible}
+  .otaskadd{display:flex;gap:8px;align-items:center;margin-top:5px}
+  .osubadd{border:1px dashed var(--line);border-radius:6px;background:transparent;color:var(--ink);font:inherit;font-size:11.5px;padding:3px 8px;flex:1}
+  .obranch{align-items:center} .opubrow{align-items:center}
+  .opubhd{cursor:pointer;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0;user-select:none}
+  .ogrip{cursor:grab;color:var(--faint);font-size:13px;flex:none;user-select:none;opacity:.55;line-height:1}
+  .ogrip:hover{color:var(--accent)} .ogrip:active{cursor:grabbing} .ostep:hover>.ohd>.ogrip,.otask:hover>.ogrip,.otaskhead:hover>.ogrip{opacity:1}
+  .omove{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:11px;padding:0 1px;line-height:1;flex:none}
+  .omove:hover{color:var(--accent)}
+  .ostep .ohd .omove{visibility:hidden} .ostep:hover .ohd .omove{visibility:visible}
+  .otask .omove,.otaskhead .omove{visibility:hidden} .otask:hover .omove,.otaskhead:hover .omove{visibility:visible}
+  .ostep.odragover,.otask.odragover,.otaskhead.odragover{outline:2px dashed var(--accent);outline-offset:1px;border-radius:8px}
+  .otask.odragover,.otaskhead.odragover{outline-offset:-1px}
+  .omchip.omdone{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+  .opub{border-top:1px dashed var(--line);padding-top:7px;margin-top:2px}
+  .opubrow{display:flex;align-items:baseline;gap:7px;font-size:12px;padding:2px 0}
+  .opubrow .oic{cursor:pointer;width:15px;text-align:center;font-weight:700;flex:none}
+  .opubrow.p-done .oic{color:var(--green)} .opubrow.p-prog .oic{color:var(--amber)} .opubrow.p-plan .oic{color:var(--grey)} .opubrow.p-gap .oic{color:var(--red)}
+  .opname{font-weight:600;white-space:nowrap} .opacc{color:var(--muted);font-size:11px;white-space:nowrap}
+  .opurl a{color:var(--accent);text-decoration:none;margin-right:3px} .opnote{color:var(--muted);flex:1;min-width:60px}
+  .opubrow .x{visibility:hidden} .opubrow:hover .x{visibility:visible}
+  .otag{font-size:10px;background:var(--sunk);color:var(--muted);padding:1px 7px;border-radius:20px}
+  .opill{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:20px;cursor:pointer;white-space:nowrap;flex:none}
+  .opill.p-done{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
+  .opill.p-prog{background:color-mix(in srgb,var(--amber) 18%,transparent);color:var(--amber)}
+  .opill.p-plan{background:var(--sunk);color:var(--muted)}
+  .opill.p-gap{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+  .olane{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:1px 7px;border-radius:20px;background:var(--sunk);color:var(--muted)}
+  .olane-wing{background:color-mix(in srgb,var(--violet) 15%,transparent);color:var(--violet)}
+  .odetail{font-size:12.5px;white-space:pre-wrap;margin:6px 0 2px;color:var(--muted)} .odetail .editable{display:block}
+  .lane-wing{border-left:3px solid var(--violet)} .lane-downstream{opacity:.85;border-style:dashed}
+  .obranchwrap{margin:8px 0 2px;border-left:2px solid var(--line);padding-left:10px}
+  .obranchlbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:800;color:var(--accent);margin-bottom:3px}
+  .obranch{display:flex;align-items:baseline;gap:7px;font-size:12px;padding:2px 0}
+  .obranch .oic{cursor:pointer;width:15px;text-align:center;font-weight:700;flex:none}
+  .obranch.p-done .oic{color:var(--green)} .obranch.p-prog .oic{color:var(--amber)} .obranch.p-plan .oic{color:var(--grey)} .obranch.p-gap .oic{color:var(--red)}
+  .oblabel{font-weight:700;white-space:nowrap} .obdetail{color:var(--muted);flex:1;min-width:0}
+  .obranch .x,.ostep .ohd .x{visibility:hidden;border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:13px}
+  .obranch:hover .x,.ostep:hover .ohd .x{visibility:visible} .obranch .x:hover,.ohd .x:hover{color:var(--red)}
+  .obranchadd{border:none;background:transparent;color:var(--accent);cursor:pointer;font-size:11px;padding:2px 0;font-weight:600}
+  .obranchadd.ghost{color:var(--faint)}
+  .ofoot{margin-top:16px;border-top:1px solid var(--line);padding-top:8px} .ofoot>summary{cursor:pointer;font-size:12px;color:var(--muted);font-weight:600}
+  .opool{border:1px solid var(--line);border-radius:10px;padding:10px 13px;background:var(--panel)}
+  .op-fresh{border-left:3px solid var(--green)} .op-ffpe{border-left:3px solid var(--violet)}
+  .opoolh{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:800;color:var(--faint)}
+  .opooln{font-size:13px;margin:3px 0} .opooln .ne{color:var(--muted);font-size:12px}
+  .ocompbar{display:flex;height:15px;border-radius:5px;overflow:hidden;margin:5px 0;background:var(--sunk)}
+  .oseg{color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;min-width:0}
+  .sg-d{background:var(--red)} .sg-v{background:var(--violet)} .sg-pn{background:var(--grey)}
+  .ocomplg{font-size:11px;color:var(--muted)} .ocomplg .sg-d{color:var(--red)} .ocomplg .sg-v{color:var(--violet)} .ocomplg .sg-pn{color:var(--grey)}
+  .opoolwarn{color:var(--red);font-size:11.5px;font-weight:600;margin:4px 0}
+  .obaseline,.orule{font-size:12.5px;background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:9px 13px;margin-top:12px}
+  .ofigs{margin-top:14px} .ofigh{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--faint);margin-bottom:5px}
+  .ofig{font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--line);display:flex;gap:6px} .ofig b{color:var(--accent);flex:none}
+  .projspec .pspecrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:4px 0;font-size:12.5px;border-bottom:1px solid var(--line)}
+  .projspec .pspecrow:last-of-type{border-bottom:none}
+  .projspec .pspecrow .x{visibility:hidden;border:none;background:transparent;color:var(--faint);cursor:pointer;margin-left:auto}
+  .projspec .pspecrow:hover .x{visibility:visible} .projspec .pspecrow .x:hover{color:var(--red)}
+  .taskedit{display:flex;gap:6px;flex:1} .taskedit .who{width:80px} .taskedit .txt{flex:1}
+  .addrow{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .addrow input{font-size:12px;border:1px dashed var(--line);background:transparent;color:var(--ink);padding:3px 8px;border-radius:8px;min-width:170px}
+  .addchip{font-size:11px;border:1px dashed var(--line);background:transparent;color:var(--faint);border-radius:20px;padding:3px 10px;cursor:pointer}
+  .addchip:hover{border-color:var(--accent);color:var(--accent)}
+
+  .metafoot{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:16px;padding-top:10px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted)}
+  .metafoot .k{color:var(--faint)} .metafoot select{font-size:11.5px;padding:3px 6px}
+  .metafoot .tag{font-size:10.5px;background:var(--accent-soft);color:var(--accent);padding:1px 7px;border-radius:20px;font-weight:600}
+  .metafoot .dir{font-size:10.5px;color:var(--faint);font-family:ui-monospace,Menlo,monospace}
+  .metafoot .spacer{flex:1}
+  .metafoot label.arch{display:flex;gap:5px;align-items:center;cursor:pointer}
+  .metafoot .del{border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;padding:3px 10px;border-radius:7px}
+  .metafoot .del:hover{color:#fff;background:var(--red);border-color:var(--red)}
+  .addproj{margin:16px 2px}
+
+  dialog{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);color:var(--ink);padding:0;max-width:420px;width:92%}
+  dialog::backdrop{background:rgba(10,15,25,.4)}
+  .dlg{padding:18px;display:flex;flex-direction:column;gap:10px}
+  .dlg h3{margin:0} .dlg input,.dlg select{padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)}
+  .dlg .row{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+  /* ---- CV (standard curriculum vitae) ---- */
+  .cvbar{display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap}
+  .miss{background:color-mix(in srgb,var(--amber) 9%,transparent);border:1px solid color-mix(in srgb,var(--amber) 40%,transparent);border-radius:10px;padding:11px 15px;margin-bottom:16px}
+  .miss h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--amber)}
+  .miss ul{margin:0;padding-left:18px;columns:2;column-gap:26px} .miss li{font-size:12px;color:var(--muted);cursor:pointer;padding:1px 0;break-inside:avoid}
+  .miss li:hover{color:var(--accent);text-decoration:underline}
+  .miss .done{color:var(--green);font-style:italic;columns:1;list-style:none;margin-left:-18px}
+  .cv{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:40px 50px;max-width:830px}
+  .cv-head{text-align:center;border-bottom:2px solid var(--ink);padding-bottom:13px;margin-bottom:4px}
+  .cv-name{font-size:27px;font-weight:700;letter-spacing:.01em}
+  .cv-name .editable{font-size:27px;font-weight:700}
+  .cv-cred{font-size:13px;color:var(--muted);margin-top:3px}
+  .cv-head,.cv-name,.cv-cred{text-align:center}
+  .cv-contact{font-size:12.5px;margin-top:7px;display:flex;gap:4px 8px;justify-content:center;flex-wrap:wrap;align-items:baseline;text-align:center}
+  .cv-contact>span,.cvlink,.cvlink a{white-space:nowrap}
+  .cv-contact span,.cv-contact .editable{color:var(--muted)}
+  .cvlink{display:inline-flex;align-items:baseline;gap:1px}
+  .cvlink a{color:var(--accent);text-decoration:none} .cvlink a:hover{text-decoration:underline}
+  .lnkedit{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:10px;padding:0 1px;line-height:1}
+  .lnkedit:hover{color:var(--accent)}
+  .cv-sec{margin-top:22px}
+  .cv-h2{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:3px;margin-bottom:8px}
+  .cv-h3{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:11px 0 4px}
+  .cv-item{display:flex;justify-content:space-between;gap:18px;padding:4px 0;align-items:baseline}
+  .cv-item .l{flex:1;min-width:0} .cv-item .r{flex:none;color:var(--muted);font-size:12.5px;text-align:right;white-space:nowrap}
+  .cv-t{font-weight:600;font-size:13.5px} .cv-sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .cv-pub{padding:5px 0 5px 20px;text-indent:-20px;font-size:13px;line-height:1.5}
+  .cv-pub b{font-weight:700} .cv-pub .ti{font-style:italic}
+  .cv-tag{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:20px;margin-left:6px;color:#fff;vertical-align:1px;text-indent:0}
+  .cv-empty{color:var(--faint);font-style:italic}
+  .cv-none{color:var(--faint);font-style:italic;font-size:12.5px;padding:3px 0}
+  .cv-entry{position:relative;padding:3px 22px 5px 0}
+  .cv-titlerow{display:flex;align-items:baseline;gap:10px}
+  .cv-t{flex:1 1 auto;min-width:0} .cv-t .editable{font-weight:600}
+  .cv-date,.cv-date .editable{color:var(--muted);font-size:12px}
+  .cv-date{flex:none;text-align:right;white-space:nowrap} .cv-titlerow .cv-status{flex:none}
+  .cv-entry .cv-kv,.cv-entry .cv-sub,.cv-entry .cv-desc{margin-left:16px}
+  .cv-paraval{flex:1;min-width:0;line-height:1.5;color:var(--muted);text-align:left}
+  .cv-paraval .editable{display:block;text-align:left}
+  .cv-block2{margin-left:16px;font-size:12.5px;line-height:1.5;text-align:left;color:var(--muted)}
+  .cv-block2 .editable{display:block;text-align:left}
+  .cvlinks{display:inline-flex;flex-wrap:wrap;gap:2px 5px;align-items:baseline}
+  .cbprev{font-size:13px;line-height:1.55;padding:7px 2px;color:var(--ink);min-height:20px} .cbprev b{font-weight:700}
+  .cv-kv{display:flex;gap:6px;font-size:12.5px;padding:1px 0;align-items:baseline}
+  .cv-kv .kk{color:var(--muted);font-weight:600;flex:0 0 98px}
+  .cv-sub .kk{color:var(--muted);font-weight:600;flex:none}
+  .cv-del{position:absolute;top:2px;right:0;border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:14px;padding:0 2px;visibility:hidden}
+  .cv-entry:hover .cv-del{visibility:visible} .cv-del:hover{color:var(--red)}
+  .cv-add{margin:6px 0 2px;font-size:12px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:3px 11px;cursor:pointer}
+  .cv-add:hover{border-color:var(--accent);color:var(--accent)}
+  .cv-status{color:var(--muted);font-size:12px;font-style:italic}
+  .cv-datestack{display:flex;flex-direction:column;align-items:flex-end;flex:none;text-align:right;gap:1px}
+  .cv-prestitle{font-style:italic;text-align:left} .cv-prestitle .editable{font-weight:400;font-style:italic;display:block;text-align:left}
+  .cv-prestitle i{font-style:normal}  /* Latin term inside an italic title → roman */
+  .cv-presmeta{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;margin-left:16px;color:var(--muted);font-size:12px;padding:1px 0}
+  .cv-presmeta .sep{color:var(--faint)}
+  .cv-distinction,.cv-distinction .editable{font-style:italic}
+  .cv-venuex{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:13px;visibility:hidden}
+  .cv-presmeta:hover .cv-venuex{visibility:visible} .cv-venuex:hover{color:var(--red)}
+  .cv-addvenue{margin-left:16px}
+  .cv-links{margin-top:4px}
+  .cv-chips{display:flex;gap:6px;flex-wrap:wrap;margin:3px 0 1px}
+  .cv-chip{font-size:11px;border:1px dashed var(--line);background:transparent;color:var(--faint);border-radius:20px;padding:2px 9px;cursor:pointer}
+  .cv-chip:hover{border-color:var(--accent);color:var(--accent)}
+  .cv-h2wrap{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .cv-eye{font-size:10.5px;border:1px solid var(--line);background:transparent;color:var(--faint);border-radius:20px;padding:1px 9px;cursor:pointer;white-space:nowrap;flex:none}
+  .cv-eye:hover{border-color:var(--accent);color:var(--accent)}
+  .cv-eye.off{border-style:dashed;color:#c0392b;border-color:#c0392b}
+  .cv-sec.cv-hidden > :not(.cv-h2wrap){opacity:.38}
+  .cv-sec.cv-hidden .cv-h2{color:var(--faint);text-decoration:line-through}
+  @media print{
+    @page{margin:0.55in}
+    html,body{background:#fff;color:#000;font-size:10.5pt}
+    .side,.cvbar,.miss,.cv-eye{display:none!important}
+    .cv-sec.cv-hidden{display:none!important}
+    main{max-width:none;padding:0}
+    .cv{border:none;border-radius:0;padding:0;max-width:none;background:#fff}
+    /* continuous flow — no forced/avoided page breaks */
+    .cv-sec,.cv-entry,.cv-item,.cv-pub,.cv-h2,.cv-h3{break-inside:auto;page-break-inside:auto}
+    .cv-h2,.cv-h3{break-after:avoid;page-break-after:avoid}
+    .cv-tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .editable{border:none!important;background:none!important}
+    .lnkedit,.cv-add,.cv-del,.cv-chips,.cv-chip,.cv-venuex{display:none!important}
+    .cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
+    .paste{display:none!important}
+  }
+  @media(max-width:720px){.app{flex-direction:column}.side{position:static;height:auto;width:100%}.miss ul{columns:1}}
+</style>
+</head>
+<body>
+<div class="app"><aside class="side" id="side"></aside><main id="main"></main></div>
+<datalist id="journals"></datalist>
+<datalist id="confs"></datalist>
+
+<dialog id="newProjDlg"><form method="dialog" class="dlg">
+  <h3>New project</h3>
+  <input id="npName" placeholder="Project / paper title" required>
+  <select id="npLab"></select><select id="npGroup"></select>
+  <input id="npPI" placeholder="PI (optional)">
+  <div class="row"><button class="btn ghost" value="cancel" formnovalidate>Cancel</button><button class="btn" value="ok">Create</button></div>
+</form></dialog>
+
+<script>
+const TRACK_STATUS={
+  funding:["","needed","applied","awarded"], data:["","needed","collecting","acquired"],
+  analysis:["","planned","in-progress","complete"], paper:["","idea","in-prep","feedback","in-submission","in-review","accepted","published"]};
+const POSTER_STATUS=["","idea","planned","submitted","accepted","presented"];
+const PTYPES=["Poster","Oral Presentation","Poster + Oral","Abstract"];
+const SC={"":"var(--grey)",idea:"var(--grey)",needed:"var(--amber)",planned:"var(--amber)","in-prep":"var(--amber)",
+  feedback:"var(--violet)",applied:"var(--blue)",collecting:"var(--blue)","in-progress":"var(--blue)",submitted:"var(--blue)","in-submission":"var(--blue)","in-review":"var(--blue)",
+  awarded:"var(--green)",acquired:"var(--green)",complete:"var(--green)",accepted:"var(--green)",presented:"var(--green)",published:"var(--green)"};
+const AUTH=["","first","co-first","second","third","middle"];
+const AUTH_LBL={first:"1st author","co-first":"Co-1st author",second:"2nd author",third:"3rd author",middle:"Middle author","":"set authorship"};
+const AUTH_SHORT={first:"1st","co-first":"Co-1st",second:"2nd",third:"3rd",middle:"Middle","":""};
+const WORK=["funding","data","analysis"];
+const JOURNALS=["Nature","Nature Medicine","Nature Neuroscience","Nature Aging","Nature Cardiovascular Research","Nature Cardiovascular Medicine","Nature Reviews Neurology","Science","Cell","Cell Reports","Circulation","JACC","JACC Advances","JAMA","JAMA Neurology","JAMA Cardiology","JAMA Ophthalmology","JAMA Network Open","Ophthalmology","Immunity","Alzheimer's & Dementia","Neurology","Annals of Neurology","JNS","JNIS","AJNR","Neurosurgery","World Neurosurgery","Journal of Neuro-oncology"];
+const JABBR={"Nature":"Nature","Nature Medicine":"Nat Med","Nature Neuroscience":"Nat Neurosci","Nature Aging":"Nat Aging","Nature Cardiovascular Research":"Nat Cardiovasc Res","Nature Cardiovascular Medicine":"Nat Cardiovasc Med","Nature Reviews Neurology":"Nat Rev Neurol","Science":"Science","Cell":"Cell","Cell Reports":"Cell Rep","Circulation":"Circulation","JACC":"J Am Coll Cardiol","JACC Advances":"JACC Adv","JAMA":"JAMA","JAMA Neurology":"JAMA Neurol","JAMA Cardiology":"JAMA Cardiol","JAMA Ophthalmology":"JAMA Ophthalmol","JAMA Network Open":"JAMA Netw Open","Ophthalmology":"Ophthalmology","Immunity":"Immunity","Alzheimer's & Dementia":"Alzheimers Dement","Neurology":"Neurology","Annals of Neurology":"Ann Neurol","JNS":"J Neurosurg","Journal of Neurosurgery":"J Neurosurg","JNIS":"J Neurointerv Surg","AJNR":"AJNR Am J Neuroradiol","Neurosurgery":"Neurosurgery","World Neurosurgery":"World Neurosurg","Journal of Neuro-oncology":"J Neurooncol"};
+const CONFS=["AAIC","AAN","CNS","SVIN","CureHHT"];
+const TK={
+  funding:["fund","grant","r01","k99","foundation","scholarship","award","budget","money","samvid","guggenheim","couch","eyebank"],
+  data:["data","sample","collect","acquire","cohort","download","trinetx","biobank","tissue","lines","fastq","cosmx","ihc","sorting"],
+  analysis:["analysis","analyze","model","statistic","figure","fig ","rnaseq","deg","spatial","scrnaseq","pipeline","staining","elisa","segmentation","proteomic","variant"],
+  paper:["paper","manuscript","submit","revision","reviewer","review","journal","resubmit","draft","supplementary","text","rebuttal","nature","jama","jnis","jns","ajnr","cell","accepted","rejected"]};
+
+let DATA=null, activeLab=null, curQ='';
+const expanded=new Set(), collapsedGroups=new Set(), expandedTasks=new Set(), revealedWork=new Set(), expandedOmics=new Set();
+let hideCompleted=true, showArchived=false, saveTimer=null, pendingFocusId=null, dragId=null, omicsDrag=null, groupMode='program', subMode='', labView='research', dataMtime=null;
+const CLERICAL_STATUS=["todo","in progress","submitted","approved","done"];
+const CLERICAL_COLOR={todo:"var(--amber)","in progress":"var(--blue)",submitted:"var(--blue)",approved:"var(--green)",done:"var(--green)"};
+const DATASETS=["UKB","AoU","TriNetX","UPTEMPO","BioMe","PMBB","CHOP","iPSC","Brain tissue","CSF","scRNAseq","Spatial"];
+const STAGE_ORDER=["idea","data-collection","analysis","manuscript-prep","ready-for-feedback","responding-to-feedback","prepared-for-submission","in-submission","in-review","in-revision","rejected","accepted"];
+const STAGE_LBL={idea:"Idea","data-collection":"Data Collection",analysis:"Analysis","manuscript-prep":"Manuscript Preparation","ready-for-feedback":"Ready for Feedback","responding-to-feedback":"Responding to Feedback","prepared-for-submission":"Prepared for Submission","in-submission":"In Submission","in-review":"In Review","in-revision":"In Revision",rejected:"Rejected",accepted:"Accepted"};
+const STAGE_COLOR={idea:"var(--grey)","data-collection":"var(--grey)",analysis:"var(--amber)","manuscript-prep":"var(--amber)","ready-for-feedback":"var(--violet)","responding-to-feedback":"var(--violet)","prepared-for-submission":"var(--blue)","in-submission":"var(--blue)","in-review":"var(--blue)","in-revision":"var(--blue)",rejected:"var(--red)",accepted:"var(--green)"};
+const stageOf=p=>p.stage||"idea";
+const isActive=p=>!["accepted","rejected"].includes(stageOf(p));
+const CV_SECTIONS=["Education","Experience","Activities","Funding / Scholarship","Peer Review Activity"];
+const CV_SECTION_LABEL={"Education":"Education","Experience":"Experience","Activities":"Leadership & Service","Funding / Scholarship":"Honors & Awards","Peer Review Activity":"Peer Review"};
+const GRANT_STATUS=["planning","applying","submitted","under review","awarded","rejected","not eligible"];
+const GRANT_COLOR={planning:"var(--grey)",applying:"var(--amber)",submitted:"var(--blue)","under review":"var(--blue)",awarded:"var(--green)",rejected:"var(--red)","not eligible":"var(--faint)"};
+const PRES_STATUS=["","planned","submitted","accepted","presented","rejected"];
+const PRES_STATUS_LBL={'':'—',planned:'Planned',submitted:'Submitted',accepted:'Accepted',presented:'Presented',rejected:'Rejected'};
+const $=s=>document.querySelector(s);
+const el=(t,c,x)=>{const e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e;};
+const optn=(v,t)=>{const o=el('option',null,t);o.value=v;return o;};
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+const myName=()=>((DATA&&DATA.profile&&DATA.profile.name)||'');
+// Which lab (if any) shows the multi-omics planning board. Set in flags, not in code.
+const omicsLab=()=>((DATA&&DATA.flags&&DATA.flags.omicsLab)||'');
+// "Is this me?" — everything that used to hardcode a name derives from profile.name.
+const rxEsc=t=>String(t).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const myNameParts=()=>myName().trim().split(/\s+/).filter(Boolean);
+function meRe(loose){
+  const p=myNameParts(); if(!p.length) return null;
+  const inits=p.map(x=>x[0]).filter(c=>/[A-Za-z]/.test(c)).join('');
+  const alts=[p[p.length-1],p[0]].concat(loose?[inits,'me']:[]);
+  return new RegExp('\\b('+alts.filter(Boolean).map(rxEsc).join('|')+')\\b','i');
+}
+const isMeName =s=>{const r=meRe();     return !!r&&r.test(s||'');};  // author lists
+const isMeOwner=s=>{const r=meRe(true); return !r||r.test(s||'');};   // owner fields; no name set → assume mine
+const esc=s=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+async function boot(){ const r=await fetch('/api/data'); dataMtime=r.headers.get('X-Data-Mtime'); DATA=await r.json();
+  normalizeData();
+  collapsedGroups.add('tail:accepted'); collapsedGroups.add('tail:rejected');
+  // Fresh workspace (no projects yet) → open on the CV, which is where you start.
+  activeLab=(DATA.projects&&DATA.projects.length)?DATA.labs[0]:'__cv__';
+  buildDatalists(); render(); }
+function migTask(it){
+  if(it.owner===undefined)it.owner='';
+  if(it.date===undefined)it.date='';
+  if(it.due===undefined)it.due='';
+  if(it.priority===undefined)it.priority=it.hp?'high':'';
+  if(it.notes===undefined)it.notes='';
+  if(!Array.isArray(it.links))it.links=[];
+  if(it.children&&!it.subtasks){it.subtasks=it.children;delete it.children;}
+  if(!Array.isArray(it.subtasks))it.subtasks=[];
+  it.subtasks.forEach(migTask);
+}
+function normalizeData(){ if(!DATA.groups)DATA.groups=[]; if(!DATA.entries)DATA.entries=[]; if(!DATA.grants)DATA.grants=[]; if(!DATA.clerical)DATA.clerical=[]; if(!DATA.specimens)DATA.specimens=[]; if(!DATA.profile)DATA.profile={}; if(!DATA.flags)DATA.flags={}; DATA.omics = (!DATA.omics||(DATA.omics.v||0)<6) ? defaultOmics() : migrateOmics(DATA.omics);
+  DATA.projects.forEach(p=>Object.values(p.tracks).forEach(tr=>(tr.items||[]).forEach(migTask))); }
+async function reloadFresh(){ const r=await fetch('/api/data'); dataMtime=r.headers.get('X-Data-Mtime'); DATA=await r.json(); normalizeData(); render(); }
+boot();
+function buildDatalists(){
+  const js=new Set(JOURNALS), cs=new Set(CONFS);
+  DATA.projects.forEach(p=>{ if(p.tracks.paper?.journal)js.add(p.tracks.paper.journal); (p.posters||[]).forEach(ps=>ps.conference&&cs.add(ps.conference)); });
+  const fill=(id,set)=>{const dl=$('#'+id); dl.innerHTML=''; [...set].sort().forEach(v=>dl.appendChild(optn(v,v)));};
+  fill('journals',js); fill('confs',cs);
+}
+
+const projectsIn=(lab,g)=>DATA.projects.filter(p=>p.lab===lab && (g===undefined||(p.group||'')===g));
+const groupsIn=lab=>DATA.groups.filter(g=>g.lab===lab);
+const labCount=lab=>CV_SECTIONS.includes(lab)?DATA.entries.filter(e=>e.section===lab).length:projectsIn(lab).filter(isActive).length;
+const prioSort=(a,b)=>(b.priority||0)-(a.priority||0)||a.name.localeCompare(b.name);
+const openCount=p=>Object.values(p.tracks).reduce((n,tr)=>n+(tr.items||[]).filter(i=>!i.done).length,0);
+const journalOf=p=>(p.tracks.paper||{}).journal||'';
+
+function render(){ renderSide(); renderMain(); }
+
+function renderSide(){
+  const s=$('#side'); s.innerHTML='';
+  const b=el('div','brand','ResearchOps'); b.appendChild(el('small',null,(DATA.profile&&DATA.profile.name?DATA.profile.name+' · ':'')+(DATA.updated?('saved '+DATA.updated):''))); s.appendChild(b);
+  const srch=el('input'); srch.id='search'; srch.placeholder='Filter…'; srch.value=curQ;
+  srch.addEventListener('input',e=>{curQ=e.target.value; renderMain();}); s.appendChild(srch);
+  const cvIt=el('div','navitem'+(activeLab==='__cv__'?' active':'')); cvIt.appendChild(el('span',null,'📄 Curriculum Vitae'));
+  cvIt.onclick=()=>{activeLab='__cv__'; render();}; s.appendChild(cvIt);
+  const asIt=el('div','navitem'+(activeLab==='__assistant__'?' active':'')); asIt.appendChild(el('span',null,'✨ Update Assistant'));
+  const asBadge=el('span','n'); asIt.appendChild(asBadge);
+  fetch('/api/pending').then(r=>r.json()).then(items=>{ if(items&&items.length){ asBadge.textContent=items.length; asBadge.style.background='var(--amber)'; asBadge.style.color='#fff'; asBadge.style.borderRadius='10px'; asBadge.style.padding='0 6px'; } }).catch(()=>{});
+  asIt.onclick=()=>{activeLab='__assistant__'; render();}; s.appendChild(asIt);
+  // Wet-lab specimen tracker — only relevant to workspaces that bank tissue.
+  // Shows once there are specimens, or when flags.specimens is turned on.
+  if((DATA.specimens||[]).length||(DATA.flags||{}).specimens){
+    const spIt=el('div','navitem'+(activeLab==='__specimens__'?' active':'')); spIt.appendChild(el('span',null,'🧫 Specimens'));
+    spIt.appendChild(el('span','n',String((DATA.specimens||[]).length))); spIt.onclick=()=>{activeLab='__specimens__'; render();}; s.appendChild(spIt);
+  }
+  const dueIt=el('div','navitem'+(activeLab==='__due__'?' active':'')); dueIt.appendChild(el('span',null,'⏰ My tasks'));
+  const overN=dueCount(); if(overN){ const db=el('span','n'); db.textContent=overN; db.style.background='var(--red)'; db.style.color='#fff'; db.style.borderRadius='10px'; db.style.padding='0 6px'; dueIt.appendChild(db); }
+  dueIt.onclick=()=>{activeLab='__due__'; render();}; s.appendChild(dueIt);
+  s.appendChild(el('div','navlbl','Labs'));
+  DATA.labs.filter(l=>!CV_SECTIONS.includes(l)).forEach(lab=>{ const it=el('div','navitem'+(lab===activeLab?' active':''));
+    it.appendChild(el('span',null,lab)); it.appendChild(el('span','n',String(labCount(lab))));
+    it.onclick=()=>{activeLab=lab; labView='research'; render();};
+    it.ondragover=e=>{ if(dragId){e.preventDefault(); it.classList.add('dragover');} };
+    it.ondragleave=()=>it.classList.remove('dragover');
+    it.ondrop=e=>{ e.preventDefault(); it.classList.remove('dragover'); if(dragId){ moveProject(dragId,null,lab,''); activeLab=lab; } };
+    s.appendChild(it); });
+  s.appendChild(el('div','navlbl','CV Sections'));
+  CV_SECTIONS.forEach(sec=>{ const it=el('div','navitem'+(sec===activeLab?' active':''));
+    it.appendChild(el('span',null,CV_SECTION_LABEL[sec]||sec)); it.appendChild(el('span','n',String(labCount(sec))));
+    it.onclick=()=>{activeLab=sec; render();}; s.appendChild(it); });
+  s.appendChild(el('div','navlbl','Group by'));
+  const gmw=el('div','gmwrap'); const gm=el('select','gmsel');
+  [['program','Program'],['dataset','Dataset'],['status','Status']].forEach(([v,l])=>gm.appendChild(optn(v,l)));
+  gm.value=groupMode; gm.onchange=()=>{groupMode=gm.value; renderMain();}; gmw.appendChild(gm); s.appendChild(gmw);
+  const smw=el('div','gmwrap'); const sm=el('select','gmsel');
+  [['','then by… (none)'],['status','then by Status'],['dataset','then by Dataset']].forEach(([v,l])=>sm.appendChild(optn(v,l)));
+  sm.value=subMode; sm.onchange=()=>{subMode=sm.value; renderMain();}; smw.appendChild(sm); s.appendChild(smw);
+  const foot=el('div','sidefoot');
+  foot.appendChild(mkToggle('Hide completed tasks',hideCompleted,v=>{hideCompleted=v; renderMain();}));
+  const rb=el('button','btn ghost sm','📄 Weekly report'); rb.onclick=()=>window.open('/report?lab='+encodeURIComponent(activeLab),'_blank'); foot.appendChild(rb);
+  const sb=el('div','savebadge','saved'); sb.id='savebadge'; foot.appendChild(sb); s.appendChild(foot);
+}
+function mkToggle(label,val,cb){ const w=el('label','toggle'); const c=el('input'); c.type='checkbox'; c.checked=val;
+  c.onchange=()=>cb(c.checked); w.appendChild(c); w.appendChild(el('span',null,label)); return w; }
+
+function matches(p){ if(!curQ)return true; const q=curQ.toLowerCase();
+  const hay=(p.name+' '+(p.authorship||'')+' '+(p.pi||[]).join(' ')+' '+(p.tags||[]).join(' ')+' '+journalOf(p)+' '+(p.dataset||'')+' '+
+    (p.posters||[]).map(x=>(x.note||'')+' '+(x.presentations||[]).map(pr=>pr.conference).join(' ')).join(' ')+' '+
+    Object.values(p.tracks).flatMap(t=>(t.items||[]).map(i=>i.owner+' '+i.text)).join(' ')).toLowerCase();
+  return hay.includes(q); }
+function labStats(lab){ let prio=0,acc=0,open=0;
+  projectsIn(lab).forEach(p=>{ if(!isActive(p))return; if(p.priority)prio++;
+    if(['accepted','published'].includes((p.tracks.paper||{}).status))acc++;
+    (p.posters||[]).forEach(x=>{if((x.presentations||[]).some(pr=>['accepted','presented'].includes(pr.status)))acc++;});
+    Object.values(p.tracks).forEach(tr=>{(tr.items||[]).forEach(i=>{if(!i.done)open++;});});});
+  return {prio,acc,open}; }
+
+function renderMain(){
+  const m=$('#main'); m.innerHTML='';
+  if(activeLab==='__cv__'){ renderCV(m); return; }
+  if(activeLab==='__assistant__'){ renderAssistant(m); return; }
+  if(activeLab==='__specimens__'){ renderSpecimens(m); return; }
+  if(activeLab==='__due__'){ renderDue(m); return; }
+  if(CV_SECTIONS.includes(activeLab)){ renderCVSection(m); return; }
+  renderLabTabs(m);
+  if(labView==='omics'){ if(omicsLab()&&activeLab===omicsLab()){ renderOmicsPlan(m); return; } labView='research'; }
+  if(labView==='clerical'){ renderClerical(m); return; }
+  if(labView==='funding'){ renderFundingTab(m); return; }
+  const pap=el('details','paste');
+  pap.innerHTML=`<summary>＋ Paste a paper / submission</summary><div class="body">
+    <textarea id="paperText" placeholder="Paste a citation or paper info — authors, title, journal, status (e.g. 'Doe JR, … Lee AM. Plasma NfL and cardiovascular outcomes. Under review at JACC.')"></textarea>
+    <div class="prow"><button class="btn sm" id="paperMatch">Match →</button>
+      <select id="paperTarget"></select>
+      <button class="btn sm" id="paperApply">Add / Update</button><span class="hint" id="paperWhy"></span></div>
+    <div id="paperFields" class="prow" style="display:none;gap:10px 14px"></div></div>`;
+  m.appendChild(pap); wirePaperPaste();
+
+  const det=el('details','paste');
+  det.innerHTML=`<summary>＋ Paste a task</summary><div class="body">
+    <textarea id="pasteText" placeholder="e.g. 'Ben to finish gcSVD supplementary tables' (one per line)"></textarea>
+    <div class="prow"><button class="btn sm" id="suggestBtn">Suggest →</button>
+      <select id="pasteProject"></select><select id="pasteTrack"></select>
+      <button class="btn sm" id="addTaskBtn">Add</button><span class="hint" id="pasteWhy"></span></div></div>`;
+  m.appendChild(det); wirePaste();
+  renderLabProfile(m, activeLab);
+
+  const s=labStats(activeLab); const h=el('div','lhead');
+  h.innerHTML=`<h1>${activeLab}</h1><div class="stats"><span><b>${labCount(activeLab)}</b> active</span>
+    <span><b>${s.prio}</b>★</span><span><b>${s.acc}</b> accepted/awarded</span><span><b>${s.open}</b> open tasks</span></div>`;
+  m.appendChild(h);
+
+  if(groupMode==='program') renderProgram(m);
+  else if(groupMode==='dataset') renderByField(m,'dataset');
+  else renderByStatus(m);
+  const ap=el('div','addproj'); const b=el('button','btn ghost sm','+ New project'); b.onclick=openNewProj; ap.appendChild(b);
+  const gp=el('button','btn ghost sm','+ New program'); gp.onclick=()=>{ const name=(prompt('New program name (grouping under '+activeLab+'):')||'').trim(); if(!name)return;
+    const id=slug(name)+'-'+Math.abs(hash(name+(_pc++))).toString(36).slice(0,4);
+    const g={id,name,lab:activeLab,tags:[]}; g.tracks={}; DATA.tracks.forEach(t=>g.tracks[t]={status:'',items:[]});
+    DATA.groups.push(g); groupMode='program'; queueSave(); render(); }; ap.appendChild(gp);
+  m.appendChild(ap);
+  if(pendingFocusId){ const e=document.getElementById(pendingFocusId); if(e){e.focus(); e.scrollIntoView({block:'center'});} pendingFocusId=null; }
+}
+
+function renderCVSection(m){
+  const es=DATA.entries.filter(e=>e.section===activeLab);
+  const h=el('div','lhead'); h.innerHTML=`<h1>${CV_SECTION_LABEL[activeLab]||activeLab}</h1><div class="stats"><span><b>${es.length}</b> entries</span> <span>· edit these inline on the <b>Curriculum Vitae</b> tab too</span></div>`; m.appendChild(h);
+  const list=el('div','entries'); es.forEach(e=>list.appendChild(renderEntry(e))); m.appendChild(list);
+  const aw=el('div','addproj'); const b=el('button','btn ghost sm','+ Add entry');
+  b.onclick=()=>{ DATA.entries.push({id:'e'+Math.abs(hash('e'+(_pc++))),section:activeLab,title:'',org:'',amount:'',date:'',note:''}); queueSave(); renderMain(); };
+  aw.appendChild(b); m.appendChild(aw);
+}
+function renderEntry(e){
+  const s=e.section, isFund=s.startsWith('Funding');
+  const orgLbl = isFund?'Sponsor' : s==='Peer Review Activity'?'Role' : s==='Education'?'Degree' : s==='Experience'?'Organization' : 'Role';
+  const titlePh = isFund?'award / scholarship' : s==='Education'?'institution' : s==='Experience'?'position' : 'title';
+  const c=el('div','entry');
+  const t=el('div','etitle'); t.appendChild(editText(()=>e.title,v=>e.title=v,{ph:titlePh})); c.appendChild(t);
+  const meta=el('div','emeta');
+  meta.appendChild(kvInline(orgLbl, editText(()=>e.org,v=>e.org=v,{ph:'—'})));
+  if(isFund) meta.appendChild(kvInline('Amount', editText(()=>e.amount,v=>e.amount=v,{ph:'$—'})));
+  meta.appendChild(kvInline('Period', editText(()=>e.date,v=>e.date=v,{ph:'e.g. 2024–2025'})));
+  c.appendChild(meta);
+  const note=el('div','enote'); note.appendChild(el('span','k','Note ')); note.appendChild(editText(()=>e.note,v=>e.note=v,{ph:'—'})); c.appendChild(note);
+  const x=el('button','del','Delete'); x.onclick=()=>{ if(confirm('Delete "'+(e.title||'entry')+'"?')){DATA.entries=DATA.entries.filter(z=>z!==e); queueSave(); renderMain();} }; c.appendChild(x);
+  return c;
+}
+function renderLabProfile(m,lab){
+  const EK=['research','volunteer','entrepreneurship'];
+  let e=DATA.entries.find(x=>x.section==='Experience'&&EK.includes(x.kind)&&x.lab===lab);
+  const det=el('details','paste');
+  const sum=el('summary'); sum.textContent='🔬 Lab profile — '+(e?('“'+(e.title||'Lab of …')+'” → your CV'):'add your role/PI so it shows on your CV');
+  det.appendChild(sum);
+  const body=el('div','body'); det.appendChild(body);
+  if(!e){
+    const b=el('button','btn sm','+ Create CV entry for '+lab);
+    b.onclick=()=>{ const ne={id:'e'+Math.abs(hash('e'+lab+(_pc++))),section:'Experience',kind:'research',lab,
+      title:'Lab of ',pi:'',position:'',institution:'',city:'',date:'',note:'',org:''}; DATA.entries.push(ne); queueSave(); render(); };
+    body.appendChild(b);
+    body.appendChild(el('div','hint','Creates a Research Experience entry linked to this lab. Everything you add under this lab (projects → publications, posters → presentations, grants) already flows to your CV automatically.'));
+    m.appendChild(det); return;
+  }
+  const row=(label,ctrl)=>{ const r=el('div','kvrow'); r.appendChild(el('span','k',label)); const v=el('span','v'); v.appendChild(ctrl); r.appendChild(v); return r; };
+  const kindSel=el('select','inlinesel'); [['research','Research Experience'],['volunteer','Volunteer'],['entrepreneurship','Entrepreneurship']].forEach(([v,l])=>kindSel.appendChild(optn(v,l)));
+  kindSel.value=e.kind||'research'; kindSel.onchange=()=>{e.kind=kindSel.value; queueSave(); renderLabProfileRefresh();};
+  body.appendChild(row('CV section', kindSel));
+  if(e.kind==='research'){
+    body.appendChild(row('PI', editText(()=>e.pi||'',v=>{e.pi=v; e.title='Lab of '+v;},{ph:'PI name → shows as “Lab of …”'})));
+    body.appendChild(row('Position', editText(()=>e.position||'',v=>{e.position=v;},{ph:'e.g. Research Fellow'})));
+    body.appendChild(row('Institution', editText(()=>e.institution||'',v=>{e.institution=v;},{ph:'institution'})));
+  } else {
+    body.appendChild(row('Header', editText(()=>e.title||'',v=>{e.title=v;},{ph:'organization / role'})));
+    body.appendChild(row('Role', editText(()=>e.position||'',v=>{e.position=v;},{ph:'your role'})));
+    body.appendChild(row('Organization', editText(()=>e.org||'',v=>{e.org=v;},{ph:'organization'})));
+  }
+  body.appendChild(row('Location', editText(()=>e.city||'',v=>{e.city=v;},{ph:'City, State'})));
+  body.appendChild(row('Period', editText(()=>e.date||'',v=>{e.date=v;},{ph:'e.g. Aug 2025 – Present'})));
+  body.appendChild(row('Description', editText(()=>e.note||'',v=>{e.note=v;},{ph:'what you do here',area:true})));
+  body.appendChild(el('div','hint','↳ Renders on your CV under '+(e.kind==='research'?'Research Experience':e.kind==='volunteer'?'Volunteer':'Entrepreneurship')+'. Projects/posters/grants you add under this lab flow to the CV automatically.'));
+  m.appendChild(det);
+  function renderLabProfileRefresh(){ renderMain(); }
+}
+function renderLabTabs(m){
+  const bar=el('div','subtabs');
+  const counts={research:labCount(activeLab), clerical:DATA.clerical.filter(c=>c.lab===activeLab).length, funding:DATA.grants.filter(g=>g.lab===activeLab).length};
+  [['research','Research'],['clerical','Clerical'],['funding','Funding']].forEach(([v,l])=>{
+    const t=el('div','subtab'+(labView===v?' active':'')); t.innerHTML=`${l}<span class="cnt">${counts[v]}</span>`;
+    t.onclick=()=>{labView=v; renderMain();}; bar.appendChild(t);
+  });
+  if(omicsLab()&&activeLab===omicsLab()){ const t=el('div','subtab'+(labView==='omics'?' active':'')); t.innerHTML='🧬 Omics Plan'; t.onclick=()=>{labView='omics'; renderMain();}; bar.appendChild(t); }
+  m.appendChild(bar);
+}
+
+/* ---------- Multi-omics study plan: arms · steps · tasks · public datasets ----------
+   Structure only. A plan's content lives in the workspace (data/projects.json), never
+   in this file — so the shared app carries no one lab's unpublished study design.
+   New workspaces start empty and build their plan in the UI. */
+const OMICS_V=8;
+function defaultOmics(){ return { v:OMICS_V, gate:null, arms:[], figures:[] }; }
+const OSTAT=['plan','prog','done','gap'];
+const OMAP={done:{ic:'✓',l:'Done',c:'p-done'},prog:{ic:'◐',l:'In progress',c:'p-prog'},plan:{ic:'○',l:'Planned',c:'p-plan'},gap:{ic:'⚠',l:'Gap / needed',c:'p-gap'}};
+const ocycle=v=>OSTAT[(OSTAT.indexOf(v||'plan')+1)%OSTAT.length];
+function ostatPill(get,set){ const p=el('span','opill'); const paint=()=>{const mm=OMAP[get()||'plan']; p.className='opill '+mm.c; p.textContent=mm.ic+' '+mm.l;}; paint();
+  p.onclick=e=>{e.stopPropagation(); set(ocycle(get())); queueSave(); renderMain();}; return p; }
+function omicsComp(filt){ const a=(DATA.specimens||[]).filter(s=>(s.kind||'avm')==='avm'&&filt(s));
+  return {n:a.length,d:a.filter(s=>s.geno==='KRAS G12D').length,v:a.filter(s=>s.geno==='KRAS G12V').length,pn:a.filter(s=>s.geno==='panel-negative').length,ne:a.filter(s=>s.embolized==='no').length}; }
+function migrateOmics(O){
+  if(!O) return defaultOmics();
+  if(O.gate){ if(!O.gate.id)O.gate.id='gate'; if(!O.gate.public)O.gate.public=[]; if(!O.gate.tasks)O.gate.tasks=[]; }
+  if(!Array.isArray(O.arms))O.arms=[];
+  O.arms.forEach(a=>{ if(!Array.isArray(a.steps))a.steps=[];
+    a.steps.forEach(st=>{ if(!Array.isArray(st.public))st.public=[]; if(!Array.isArray(st.tasks))st.tasks=[]; }); });
+  if(!Array.isArray(O.figures))O.figures=[];
+  O.v=OMICS_V; return O;
+}
+function moveOmics(fromArr,obj,toArr,beforeObj){
+  const i=fromArr.indexOf(obj); if(i<0)return; fromArr.splice(i,1);
+  const j=beforeObj?toArr.indexOf(beforeObj):-1; toArr.splice(j<0?toArr.length:j,0,obj);
+  omicsDrag=null; queueSave(); renderMain();
+}
+function omicsGrip(type,obj,from){
+  const g=el('span','ogrip','⠿'); g.draggable=true;
+  g.ondragstart=e=>{ omicsDrag={type,obj,from}; try{e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',type);}catch(_){} };
+  g.ondragend=()=>{ omicsDrag=null; if(document.querySelectorAll)document.querySelectorAll('.odragover').forEach(x=>x.classList.remove('odragover')); };
+  return g;
+}
+function renderOmicsStep(steps,st,idx,numLabel){
+  st.public=st.public||[]; st.tasks=st.tasks||[]; const open=expandedOmics.has(st.id);
+  const c=el('div','ostep st-'+(st.status||'plan')+(st.lane?(' lane-'+st.lane):'')+(open?' open':''));
+  if(steps){
+    c.draggable=true;
+    c.ondragstart=e=>{ if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')){ e.preventDefault(); return; } omicsDrag={type:'step',obj:st,from:steps}; try{e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain','step');}catch(_){} };
+    c.ondragend=()=>{ omicsDrag=null; if(document.querySelectorAll)document.querySelectorAll('.odragover').forEach(x=>x.classList.remove('odragover')); };
+    c.ondragover=e=>{ if(omicsDrag&&omicsDrag.type==='step'&&omicsDrag.obj!==st){ e.preventDefault(); c.classList.add('odragover'); } };
+    c.ondragleave=()=>c.classList.remove('odragover');
+    c.ondrop=e=>{ e.preventDefault(); e.stopPropagation(); c.classList.remove('odragover'); if(omicsDrag&&omicsDrag.type==='step'&&omicsDrag.obj!==st) moveOmics(omicsDrag.from,omicsDrag.obj,steps,st); };
+  }
+  const hd=el('div','ohd');
+  if(steps) hd.appendChild(omicsGrip('step',st,steps));
+  hd.appendChild(el('span','ocar'+(open?' open':''),'▸'));
+  hd.appendChild(el('span','onum',numLabel||String(idx+1)));
+  const tt=el('span','otitle'); tt.appendChild(editText(()=>st.title,v=>st.title=v,{ph:'title'})); hd.appendChild(tt);
+  if(st.lane==='wing') hd.appendChild(el('span','olane olane-wing','⑂ wing'));
+  else if(st.lane==='downstream') hd.appendChild(el('span','olane','↓ downstream'));
+  if(st.tag) hd.appendChild(el('span','otag',st.tag));
+  const meta=el('span','ometachips');
+  const dn=st.tasks.filter(t=>!t.head&&t.status==='done').length, tot=st.tasks.filter(t=>!t.head).length;
+  if(tot) meta.appendChild(el('span','omchip'+(dn===tot?' omdone':''),'☑ '+dn+'/'+tot));
+  if(st.public.length) meta.appendChild(el('span','omchip','📁 '+st.public.length));
+  hd.appendChild(meta);
+  hd.appendChild(ostatPill(()=>st.status,v=>st.status=v));
+  if(steps){
+    const mv=dir=>{ const i=steps.indexOf(st), j=i+dir; if(i<0||j<0||j>=steps.length)return; steps.splice(i,1); steps.splice(j,0,st); queueSave(); renderMain(); };
+    const up=el('button','omove','↑'); up.title='move up'; up.onclick=e=>{e.stopPropagation(); mv(-1);};
+    const dn=el('button','omove','↓'); dn.title='move down'; dn.onclick=e=>{e.stopPropagation(); mv(1);};
+    hd.appendChild(up); hd.appendChild(dn);
+    const del=el('button','x','×'); del.title='delete step'; del.onclick=e=>{e.stopPropagation(); if(!confirm('Delete step “'+(st.title||'')+'” and its tasks?'))return; const i=steps.indexOf(st); if(i>=0)steps.splice(i,1); expandedOmics.delete(st.id); queueSave(); renderMain();}; hd.appendChild(del);
+  }
+  hd.onclick=e=>{ if(e.target.closest&&(e.target.closest('.editable')||e.target.closest('.opill')||e.target.closest('.x')||e.target.closest('.ogrip')))return; open?expandedOmics.delete(st.id):expandedOmics.add(st.id); renderMain(); };
+  c.appendChild(hd);
+  if(open){
+    const body=el('div','obody');
+    body.appendChild(renderOmicsTasks(st));
+    if(st.branches){
+      const bl=el('div','obranchwrap'); bl.appendChild(el('div','obranchlbl','∥ parallel inputs → same run'));
+      st.branches.forEach(b=>{ const r=el('div','obranch '+OMAP[b.status||'plan'].c);
+        const dot=el('span','otdot'); dot.title=OMAP[b.status||'plan'].l; dot.onclick=()=>{b.status=ocycle(b.status); queueSave(); renderMain();}; r.appendChild(dot);
+        const lab=el('span','oblabel'); lab.appendChild(editText(()=>b.label,v=>b.label=v,{ph:'input'})); r.appendChild(lab);
+        const bd=el('span','obdetail'); bd.appendChild(editText(()=>b.detail||'',v=>b.detail=v,{ph:'detail…'})); r.appendChild(bd);
+        const x=el('button','x','×'); x.onclick=()=>{st.branches=st.branches.filter(z=>z!==b); queueSave(); renderMain();}; r.appendChild(x); bl.appendChild(r); });
+      body.appendChild(bl);
+    }
+    body.appendChild(renderOmicsPublic(st));
+    c.appendChild(body);
+  }
+  return c;
+}
+function renderOmicsTasks(host){
+  host.tasks=host.tasks||[];
+  const w=el('div','otasks'); let n=0;
+  const taskDrop=(row,t)=>{
+    row.ondragover=e=>{ if(omicsDrag&&omicsDrag.type==='task'&&omicsDrag.obj!==t){ e.preventDefault(); row.classList.add('odragover'); } };
+    row.ondragleave=()=>row.classList.remove('odragover');
+    row.ondrop=e=>{ if(!(omicsDrag&&omicsDrag.type==='task'&&omicsDrag.obj!==t))return; e.preventDefault(); e.stopPropagation(); row.classList.remove('odragover'); moveOmics(omicsDrag.from,omicsDrag.obj,host.tasks,t); };
+  };
+  const tmv=(t,dir)=>{ const i=host.tasks.indexOf(t), j=i+dir; if(i<0||j<0||j>=host.tasks.length)return; host.tasks.splice(i,1); host.tasks.splice(j,0,t); queueSave(); renderMain(); };
+  const mvb=(t,host2)=>{ const up=el('button','omove','↑'); up.onclick=e=>{e.stopPropagation(); tmv(t,-1);}; const dn=el('button','omove','↓'); dn.onclick=e=>{e.stopPropagation(); tmv(t,1);}; host2.appendChild(up); host2.appendChild(dn); };
+  host.tasks.forEach(t=>{
+    if(t.head){ const hh=el('div','otaskhead'); hh.appendChild(omicsGrip('task',t,host.tasks)); hh.appendChild(editText(()=>t.text,v=>t.text=v,{ph:'section'}));
+      mvb(t,hh); const x=el('button','x','×'); x.onclick=()=>{host.tasks=host.tasks.filter(z=>z!==t); queueSave(); renderMain();}; hh.appendChild(x); taskDrop(hh,t); w.appendChild(hh); return; }
+    n++; const r=el('div','otask '+OMAP[t.status||'plan'].c);
+    r.appendChild(omicsGrip('task',t,host.tasks));
+    r.appendChild(el('span','otnum',n+'.'));
+    const dot=el('span','otdot'); dot.title=OMAP[t.status||'plan'].l; dot.onclick=()=>{t.status=ocycle(t.status); queueSave(); renderMain();}; r.appendChild(dot);
+    r.appendChild(editText(()=>t.text,v=>t.text=v,{ph:'task'}));
+    mvb(t,r); const x=el('button','x','×'); x.onclick=()=>{host.tasks=host.tasks.filter(z=>z!==t); queueSave(); renderMain();}; r.appendChild(x);
+    taskDrop(r,t); w.appendChild(r);
+  });
+  const ar=el('div','otaskadd');
+  const add=el('input','osubadd'); add.placeholder='+ add task, then Enter'; add.onkeydown=e=>{ if(e.key==='Enter'&&add.value.trim()){ host.tasks.push({text:add.value.trim(),status:'plan'}); add.value=''; queueSave(); renderMain(); }}; ar.appendChild(add);
+  const addh=el('button','obranchadd','+ section'); addh.onclick=()=>{host.tasks.push({text:'Section',head:true}); queueSave(); renderMain();}; ar.appendChild(addh);
+  w.appendChild(ar); return w;
+}
+function renderOmicsPublic(st){
+  st.public=st.public||[]; const key='pub:'+st.id, open=expandedOmics.has(key);
+  const w=el('div','opub');
+  const hd=el('div','opubhd'+(open?' open':'')); hd.textContent='📁 Public data ('+st.public.length+')';
+  hd.onclick=()=>{ open?expandedOmics.delete(key):expandedOmics.add(key); renderMain(); }; w.appendChild(hd);
+  if(!open) return w;
+  st.public.forEach(p=>{ const r=el('div','opubrow '+OMAP[p.status||'done'].c);
+    const dot=el('span','otdot'); dot.title=OMAP[p.status||'done'].l; dot.onclick=()=>{p.status=ocycle(p.status); queueSave(); renderMain();}; r.appendChild(dot);
+    const nm=el('span','opname'); nm.appendChild(editText(()=>p.name,v=>p.name=v,{ph:'dataset'})); r.appendChild(nm);
+    const ac=el('span','opacc'); ac.appendChild(editText(()=>p.accession||'',v=>p.accession=v,{ph:'GEO / acc'})); r.appendChild(ac);
+    const uw=el('span','opurl'); if(p.url){ const a=el('a',null,'↗'); a.href=/^https?:\/\//i.test(p.url)?p.url:'https://'+p.url; a.target='_blank'; a.rel='noopener'; uw.appendChild(a); } uw.appendChild(editText(()=>p.url||'',v=>p.url=v,{ph:'+link'})); r.appendChild(uw);
+    const nt=el('span','opnote'); nt.appendChild(editText(()=>p.note||'',v=>p.note=v,{ph:'note'})); r.appendChild(nt);
+    const x=el('button','x','×'); x.onclick=()=>{st.public=st.public.filter(z=>z!==p); queueSave(); renderMain();}; r.appendChild(x);
+    w.appendChild(r); });
+  const add=el('button','obranchadd','+ public dataset'); add.onclick=()=>{st.public.push({name:'',accession:'',url:'',note:'',status:'done'}); queueSave(); renderMain();}; w.appendChild(add);
+  return w;
+}
+function renderOmicsPool(poolId,armName){
+  const comp = poolId==='fresh'?omicsComp(s=>s.ffrz):omicsComp(s=>s.ffpe);
+  const c=el('div','opool op-'+poolId);
+  c.appendChild(el('div','opoolh',(poolId==='fresh'?'Fresh pool':'FFPE pool')+' → feeds this arm'));
+  const big=el('div','opooln'); big.innerHTML='<b>'+comp.n+'</b> samples · <span class="ne">'+comp.ne+' non-embolized</span>'; c.appendChild(big);
+  const bar=el('div','ocompbar'); const seg=(n,cls)=>{ if(!comp.n)return; const s=el('span','oseg '+cls); s.style.flex=(n||0.001); if(n)s.textContent=n; bar.appendChild(s); };
+  seg(comp.d,'sg-d'); seg(comp.v,'sg-v'); seg(comp.pn,'sg-pn'); c.appendChild(bar);
+  const lg=el('div','ocomplg'); lg.innerHTML='<span class="sg-d">■</span> G12D '+comp.d+' &nbsp; <span class="sg-v">■</span> G12V '+comp.v+' &nbsp; <span class="sg-pn">■</span> PN '+comp.pn; c.appendChild(lg);
+  if(poolId==='fresh'&&comp.v===0) c.appendChild(el('div','opoolwarn','⚠ No fresh G12V — prospective collection needed'));
+  const lk=el('button','btn ghost sm','↗ open Specimen Tracker'); lk.onclick=()=>{activeLab='__specimens__'; render();}; c.appendChild(lk);
+  return c;
+}
+function renderOmicsPlan(m){
+  const O=DATA.omics||(DATA.omics=defaultOmics());
+  const h=el('div','lhead'); h.innerHTML='<h1>🧬 Multi-Omics Plan</h1><div class="stats"><span>One column per arm · click a row to open its workflow, needs &amp; public data · click a status to cycle</span></div>'; m.appendChild(h);
+  if(O.gate){ m.appendChild(renderOmicsStep(null,O.gate,0,'0')); m.appendChild(el('div','oarrow','↓ two arms ↓')); }
+  const cols=el('div','ocols');
+  (O.arms||[]).forEach(arm=>{ const col=el('div','ocol');
+    col.ondragover=e=>{ if(omicsDrag&&omicsDrag.type==='step'){ e.preventDefault(); } };
+    col.ondrop=e=>{ if(omicsDrag&&omicsDrag.type==='step'){ e.preventDefault(); moveOmics(omicsDrag.from,omicsDrag.obj,arm.steps,null); } };
+    const ch=el('div','ocolh op-'+arm.pool); ch.innerHTML='<b>'+arm.name+'</b><small>'+arm.blurb+'</small>'; col.appendChild(ch);
+    col.appendChild(renderOmicsPool(arm.pool,arm.name));
+    arm.steps=arm.steps||[]; arm.steps.forEach((st,i)=>col.appendChild(renderOmicsStep(arm.steps,st,i,String(i))));
+    const add=el('button','btn ghost sm','+ add step'); add.onclick=()=>{arm.steps.push({id:'s'+Math.abs(hash('os'+(_pc++))),title:'New step',tag:'',status:'plan',lane:'',detail:''}); queueSave(); renderMain();}; col.appendChild(add);
+    cols.appendChild(col); });
+  m.appendChild(cols);
+  const ctrl=(DATA.specimens||[]).filter(s=>s.kind==='control');
+  const tlS=ctrl.filter(s=>s.assays&&s.assays.scrna==='done').reduce((n,s)=>n+(s.n||1),0);
+  const tlC=ctrl.filter(s=>s.assays&&s.assays.cosmx==='done').length;
+  const foot=el('details','ofoot'); const fsum=el('summary'); fsum.textContent='Controls · matching rule · figures'; foot.appendChild(fsum);
+  const cb=el('div','obaseline'); cb.appendChild(el('b',null,'Controls (baseline): '));
+  cb.appendChild(el('span',null,tlS+' external scRNAseq · '+tlC+' external CosMx'));
+  cb.appendChild(el('span',null,' · ')); cb.appendChild(editText(()=>O.baselineNote||'',v=>O.baselineNote=v,{ph:'internal controls…'}));
+  foot.appendChild(cb);
+  const rule=el('div','orule'); rule.appendChild(el('b',null,'Matching: '));
+  rule.appendChild(editText(()=>O.matchRule||'',v=>O.matchRule=v,{ph:'matching rule…'})); foot.appendChild(rule);
+  const fg=el('div','ofigs'); fg.appendChild(el('div','ofigh','Figures')); (O.figures||[]).forEach((f,i)=>{ const r=el('div','ofig'); r.appendChild(el('b',null,'Fig '+(i+1))); r.appendChild(editText(()=>O.figures[i],v=>O.figures[i]=v,{ph:''})); fg.appendChild(r); }); foot.appendChild(fg);
+  m.appendChild(foot);
+}
+const GRANT_SORT={planning:0,applying:1,submitted:2,'under review':2,awarded:3,'not eligible':4,rejected:5};
+function renderFundingTab(m){
+  const gs=DATA.grants.filter(g=>g.lab===activeLab).slice()
+    .sort((a,b)=>((GRANT_SORT[a.status]??9)-(GRANT_SORT[b.status]??9))||(a.name||'').localeCompare(b.name||''));
+  const h=el('div','lhead'); h.innerHTML=`<h1>Funding &amp; Grants</h1><div class="stats"><span>${activeLab} — planning → in preparation → submitted/in review → awarded → rejected</span></div>`; m.appendChild(h);
+  const box=el('div','grants'); gs.forEach(g=>box.appendChild(renderGrant(g)));
+  const aw=el('div','addrow'); const b=el('button','btn ghost sm','+ Add grant');
+  b.onclick=()=>{ DATA.grants.push({id:'g'+Math.abs(hash('g'+(_pc++))),lab:activeLab,name:'',sponsor:'',amount:'',deadline:'',hearback:'',eligibility:'',status:'applying',owner:myName(),note:''}); queueSave(); renderMain(); };
+  aw.appendChild(b); box.appendChild(aw); m.appendChild(box);
+}
+function renderClerical(m){
+  const cs=DATA.clerical.filter(c=>c.lab===activeLab);
+  const h=el('div','lhead'); h.innerHTML=`<h1>Clerical</h1><div class="stats"><span>${activeLab} — IRB, approvals, training, infrastructure, admin</span></div>`; m.appendChild(h);
+  const box=el('div','grants'); cs.forEach(c=>box.appendChild(renderClericalItem(c)));
+  const aw=el('div','addrow'); const b=el('button','btn ghost sm','+ Add clerical item');
+  b.onclick=()=>{ DATA.clerical.push({id:'c'+Math.abs(hash('c'+(_pc++))),lab:activeLab,text:'',status:'todo',date:'',note:''}); queueSave(); renderMain(); };
+  aw.appendChild(b); box.appendChild(aw); m.appendChild(box);
+}
+function renderClericalItem(c){
+  const card=el('div','grantcard');
+  card.appendChild(kvRow('Item', editText(()=>c.text,v=>c.text=v,{ph:'IRB / approval / training / infra…'})));
+  card.appendChild(kvRow('Status', selValue(()=>c.status,v=>c.status=v,CLERICAL_STATUS,null,{pill:true,color:v=>CLERICAL_COLOR[v]})));
+  card.appendChild(kvRow('Date', editText(()=>c.date,v=>c.date=v,{ph:'—'})));
+  card.appendChild(kvRow('Note', editText(()=>c.note,v=>c.note=v,{ph:'—'})));
+  const x=el('button','x','×'); x.onclick=()=>{DATA.clerical=DATA.clerical.filter(z=>z!==c); queueSave(); renderMain();}; card.appendChild(x);
+  return card;
+}
+function renderGrant(g){
+  const c=el('div','grantcard');
+  c.appendChild(kvRow('Grant', editText(()=>g.name,v=>g.name=v,{ph:'grant / mechanism'})));
+  c.appendChild(kvRow('Sponsor', editText(()=>g.sponsor,v=>g.sponsor=v,{ph:'—'})));
+  c.appendChild(kvRow('Amount', editText(()=>g.amount,v=>g.amount=v,{ph:'—'})));
+  c.appendChild(kvRow('Deadline', editText(()=>g.deadline,v=>g.deadline=v,{ph:'YYYY-MM-DD'})));
+  c.appendChild(kvRow('Hear back', editText(()=>g.hearback,v=>g.hearback=v,{ph:'YYYY-MM-DD'})));
+  c.appendChild(kvRow('Eligibility', editText(()=>g.eligibility,v=>g.eligibility=v,{ph:'—'})));
+  c.appendChild(kvRow('Owner / PI', editText(()=>g.owner!==undefined?g.owner:myName(),v=>g.owner=v,{ph:myName()||'name'})));
+  c.appendChild(kvRow('Your role', editText(()=>g.role||'',v=>g.role=v,{ph:'e.g. Grant Writer · Co-I · Trainee/PI'})));
+  c.appendChild(kvRow('Status', selValue(()=>g.status,v=>g.status=v,GRANT_STATUS,null,{pill:true,color:v=>GRANT_COLOR[v]})));
+  c.appendChild(kvRow('Note', editText(()=>g.note,v=>g.note=v,{ph:'—'})));
+  const x=el('button','x','×'); x.onclick=()=>{DATA.grants=DATA.grants.filter(z=>z!==g); queueSave(); renderMain();}; c.appendChild(x);
+  return c;
+}
+function renderProjectList(container, projects, grouped){
+  if(subMode && groupMode!==subMode){
+    let buckets;
+    if(subMode==='status'){ buckets=STAGE_ORDER.map(s=>[STAGE_LBL[s],STAGE_COLOR[s],projects.filter(p=>stageOf(p)===s)]); }
+    else { const keys=[...new Set(projects.map(p=>(p.dataset||'').trim()||'—'))].sort((a,b)=>a==='—'?1:b==='—'?-1:a.localeCompare(b));
+      buckets=keys.map(k=>[k==='—'?'no dataset':k,'var(--faint)',projects.filter(p=>(((p.dataset||'').trim())||'—')===k)]); }
+    buckets.forEach(([lbl,color,sub])=>{ if(!sub.length)return;
+      const sh=el('div','substage'); sh.innerHTML=`<span class="ssdot" style="background:${color}"></span>${esc(lbl)}<span class="cnt">${sub.length}</span>`;
+      container.appendChild(sh);
+      const box=el('div','rows'+(grouped?' grouped':'')); sub.forEach(p=>box.appendChild(renderRow(p))); container.appendChild(box); });
+  } else {
+    const box=el('div','rows'+(grouped?' grouped':'')); projects.forEach(p=>box.appendChild(renderRow(p))); container.appendChild(box);
+  }
+}
+function renderProgram(m){
+  const sub = subMode==='status';   // status secondary pulls in all stages & drops the tail
+  groupsIn(activeLab).forEach(g=>{ const all=projectsIn(activeLab,g.id).filter(matches);
+    const ps=sub?all:all.filter(isActive); if(!ps.length)return; m.appendChild(renderGroup(g,ps)); });
+  const looseAll=projectsIn(activeLab,'').filter(matches);
+  const loose=sub?looseAll:looseAll.filter(isActive);
+  if(loose.length) m.appendChild(renderNoProgram(loose));
+  if(!sub) renderTail(m);
+}
+function renderNoProgram(loose){
+  const key='nogroup:'+activeLab, collapsed=collapsedGroups.has(key);
+  const wrap=el('div','group'); const gh=el('div','ghead'+(collapsed?' collapsed':''));
+  gh.innerHTML=`<span class="caret">▾</span><span class="gname">No program</span><span class="gmeta"><span>${loose.length}</span></span>`;
+  gh.onclick=()=>{ collapsed?collapsedGroups.delete(key):collapsedGroups.add(key); renderMain(); };
+  gh.ondragover=e=>{ if(dragId){e.preventDefault(); gh.classList.add('dragover');} };
+  gh.ondragleave=()=>gh.classList.remove('dragover');
+  gh.ondrop=e=>{ e.preventDefault(); gh.classList.remove('dragover'); if(dragId){ const src=DATA.projects.find(x=>x.id===dragId); if(src){src.group=''; queueSave(); render();} } };
+  wrap.appendChild(gh);
+  if(!collapsed) renderProjectList(wrap, loose, true);
+  return wrap;
+}
+function renderTail(m){
+  [['accepted','✓ Accepted'],['rejected','✕ Rejected']].forEach(([stg,lbl])=>{ const ps=projectsIn(activeLab).filter(p=>stageOf(p)===stg&&matches(p));
+    if(!ps.length)return;
+    renderSection(m,'tail:'+stg, lbl, ps, {type:'stage',value:stg}); });
+}
+function renderSection(m,key,label,projects,drop){
+  const collapsed=collapsedGroups.has(key);
+  const gh=el('div','ghead'+(collapsed?' collapsed':''));
+  gh.innerHTML=`<span class="caret">▾</span><span class="gname">${esc(label)}</span><span class="gmeta"><span>${projects.length}</span></span>`;
+  gh.onclick=()=>{ collapsed?collapsedGroups.delete(key):collapsedGroups.add(key); renderMain(); };
+  if(drop){
+    gh.ondragover=e=>{ if(dragId){e.preventDefault(); gh.classList.add('dragover');} };
+    gh.ondragleave=()=>gh.classList.remove('dragover');
+    gh.ondrop=e=>{ e.preventDefault(); gh.classList.remove('dragover'); if(dragId){ const src=DATA.projects.find(x=>x.id===dragId);
+      if(src){ if(drop.type==='dataset')src.dataset=(drop.value==='—'?'':drop.value); else if(drop.type==='stage')src.stage=drop.value; queueSave(); render(); } } };
+  }
+  m.appendChild(gh);
+  if(!collapsed) renderProjectList(m, projects, false);
+}
+function renderByField(m,field){
+  const ps=projectsIn(activeLab).filter(p=>isActive(p)&&matches(p));
+  const buckets=new Map(); ps.forEach(p=>{ const k=((p[field]||'').trim())||'—'; if(!buckets.has(k))buckets.set(k,[]); buckets.get(k).push(p); });
+  const keys=[...buckets.keys()].sort((a,b)=>a==='—'?1:b==='—'?-1:a.localeCompare(b));
+  keys.forEach(k=>renderSection(m,field+':'+k, k==='—'?'— no dataset —':k, buckets.get(k), {type:'dataset',value:k}));
+  renderTail(m);
+}
+function renderByStatus(m){
+  STAGE_ORDER.forEach(stg=>{ const ps=projectsIn(activeLab).filter(p=>stageOf(p)===stg&&matches(p));
+    if(!ps.length)return;
+    renderSection(m,'stage:'+stg,STAGE_LBL[stg],ps,{type:'stage',value:stg}); });
+}
+function renderGroup(g,ps){
+  const wrap=el('div','group'); const collapsed=collapsedGroups.has(g.id);
+  const gh=el('div','ghead'+(collapsed?' collapsed':'')); const fund=(g.tracks?.funding?.items||[]).filter(i=>!i.done);
+  gh.innerHTML=`<span class="caret">▾</span><span class="gname">${esc(g.name)}</span>
+    <span class="gmeta">${fund.length?`<span class="fundchip">$ ${fund.length} funding</span>`:''}<span>${ps.length}</span></span>`;
+  gh.onclick=()=>{collapsed?collapsedGroups.delete(g.id):collapsedGroups.add(g.id); renderMain();};
+  gh.ondragover=e=>{ if(dragId){e.preventDefault(); gh.classList.add('dragover');} };
+  gh.ondragleave=()=>gh.classList.remove('dragover');
+  gh.ondrop=e=>{ e.preventDefault(); gh.classList.remove('dragover'); if(dragId){ const f=projectsIn(g.lab,g.id).filter(x=>!x.archived)[0]; moveProject(dragId,f?f.id:null,g.lab,g.id);} };
+  wrap.appendChild(gh);
+  if(!collapsed) renderProjectList(wrap, ps, true);
+  return wrap;
+}
+
+function moveProject(srcId, beforeId, lab, group){
+  const arr=DATA.projects; const si=arr.findIndex(p=>p.id===srcId); if(si<0)return; const src=arr[si];
+  arr.splice(si,1);
+  if(lab!==undefined)src.lab=lab; if(group!==undefined)src.group=group;
+  const ti=beforeId?arr.findIndex(p=>p.id===beforeId):-1;
+  if(ti<0)arr.push(src); else arr.splice(ti,0,src);
+  dragId=null; queueSave(); render();
+}
+function renderRow(p){
+  const frag=document.createDocumentFragment(); const isOpen=expanded.has(p.id);
+  const row=el('div','prow2'+(isOpen?' open':'')+(isActive(p)?'':' archived'));
+  row.style.borderLeft='3px solid '+STAGE_COLOR[stageOf(p)];
+  row.draggable=true;
+  row.ondragstart=e=>{ dragId=p.id; e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',p.id);}catch(_){} };
+  row.ondragend=()=>{ dragId=null; document.querySelectorAll('.dragover').forEach(x=>x.classList.remove('dragover')); };
+  row.ondragover=e=>{ if(dragId&&dragId!==p.id){ e.preventDefault(); row.classList.add('dragover'); } };
+  row.ondragleave=()=>row.classList.remove('dragover');
+  row.ondrop=e=>{ e.preventDefault(); e.stopPropagation(); row.classList.remove('dragover'); if(dragId&&dragId!==p.id){
+    const prog=groupMode==='program'; moveProject(dragId,p.id, prog?p.lab:undefined, prog?(p.group||''):undefined); } };
+  const star=el('button','star'+(p.priority?' on':''),p.priority?'★':'☆');
+  star.onclick=e=>{e.stopPropagation(); p.priority=p.priority?0:1; queueSave(); renderMain();}; row.appendChild(star);
+  const main=el('div','rmain');
+  const nm=el('div','rname'); nm.textContent=p.name; nm.title='click to rename';
+  nm.onclick=e=>{ e.stopPropagation(); row.draggable=false; const inp=el('input','rnameinput'); inp.value=p.name;
+    nm.replaceWith(inp); inp.focus(); inp.select(); let done=false;
+    const fin=()=>{ if(done)return; done=true; if(inp.value.trim())p.name=inp.value.trim(); queueSave(); renderMain(); };
+    inp.onblur=fin; inp.onkeydown=ev=>{ ev.stopPropagation(); if(ev.key==='Enter')inp.blur(); if(ev.key==='Escape'){inp.value=p.name; inp.blur();} }; };
+  main.appendChild(nm);
+  const sub=el('div','rsub'); const st=stageOf(p); const jr=journalOf(p); const parts=[];
+  if(p.authorship) parts.push(`<span>${AUTH_SHORT[p.authorship]}</span>`);
+  if(jr) parts.push(`<span>${esc(jr)}</span>`);
+  parts.push(`<span><span class="sdot" style="background:${STAGE_COLOR[st]}"></span>${STAGE_LBL[st]}</span>`);
+  if(!parts.length && (p.posters||[]).length) parts.push(`<span>${(p.posters||[]).length} poster${p.posters.length>1?'s':''}</span>`);
+  sub.innerHTML=parts.length?parts.join('<span class="sep">·</span>'):'<span style="color:var(--faint)">no details yet</span>';
+  main.appendChild(sub); row.appendChild(main);
+  const oc=openCount(p); row.appendChild(el('span','countbadge', oc?oc+' open':'✓'));
+  row.appendChild(el('span','rcaret','▸'));
+  let ct=null;
+  row.onclick=()=>{ if(ct)return; ct=setTimeout(()=>{ ct=null; isOpen?expanded.delete(p.id):expanded.add(p.id); renderMain(); },200); };
+  row.ondblclick=e=>{ if(ct){clearTimeout(ct);ct=null;} e.preventDefault(); e.stopPropagation(); showProjectMenu(p,e.clientX,e.clientY); };
+  frag.appendChild(row); if(isOpen) frag.appendChild(renderDetail(p)); return frag;
+}
+function closeMenu(){ document.querySelectorAll('.ctxmenu').forEach(m=>m.remove()); }
+function showProjectMenu(p,x,y){
+  closeMenu();
+  const menu=el('div','ctxmenu'); menu.onclick=e=>e.stopPropagation();
+  menu.style.left=x+'px'; menu.style.top=y+'px';
+  menu.appendChild(el('div','ctxlbl','Assign to theme'));
+  groupsIn(p.lab).forEach(g=>{ const b=el('div','ctxitem'+(p.group===g.id?' cur':''),g.name);
+    b.onclick=()=>{ p.group=g.id; queueSave(); closeMenu(); render(); }; menu.appendChild(b); });
+  const nw=el('div','ctxitem','+ New theme…');
+  nw.onclick=()=>{ const name=(prompt('New theme name:')||'').trim(); if(!name){closeMenu();return;}
+    const id=slug(name)+'-'+Math.abs(hash(name+(_pc++))).toString(36).slice(0,4);
+    const g={id,name,lab:p.lab,tags:[],tracks:{}}; DATA.tracks.forEach(t=>g.tracks[t]={status:'',items:[]});
+    DATA.groups.push(g); p.group=id; queueSave(); closeMenu(); render(); };
+  menu.appendChild(nw);
+  if(p.group){ const rm=el('div','ctxitem','Remove from theme'); rm.onclick=()=>{p.group=''; queueSave(); closeMenu(); render();}; menu.appendChild(rm); }
+  menu.appendChild(el('div','ctxsep'));
+  const del=el('div','ctxitem danger','Delete project');
+  del.onclick=()=>{ if(confirm('Delete project "'+p.name+'"? This cannot be undone.')){ DATA.projects=DATA.projects.filter(x=>x!==p); expanded.delete(p.id); queueSave(); closeMenu(); renderMain(); } else closeMenu(); };
+  menu.appendChild(del);
+  document.body.appendChild(menu);
+  const r=menu.getBoundingClientRect();
+  if(r.right>innerWidth)menu.style.left=(innerWidth-r.width-8)+'px';
+  if(r.bottom>innerHeight)menu.style.top=(innerHeight-r.height-8)+'px';
+  setTimeout(()=>document.addEventListener('click',closeMenu,{once:true}),0);
+}
+
+/* ---------- display-first editors ---------- */
+function selValue(get,set,options,labelMap,opts={}){
+  const span=el('span','editable'+(opts.pill?' pill':''));
+  const paint=()=>{const v=get(); span.textContent=labelMap?(labelMap[v]||v||'—'):(v||'—'); span.classList.toggle('empty',!v);
+    if(opts.pill){ const c=opts.color?opts.color(v):SC[v]; span.style.background=v?c:'transparent'; span.style.color=v?'#fff':''; }};
+  paint();
+  span.onclick=()=>{ const sel=el('select','inlinesel'); options.forEach(o=>sel.appendChild(optn(o,labelMap?(labelMap[o]||o||'—'):(o||'—')))); sel.value=get()||'';
+    span.replaceWith(sel); sel.focus(); let done=false;
+    const fin=()=>{ if(done)return; done=true; set(sel.value); queueSave(); renderMain(); };
+    sel.onchange=fin; sel.onblur=fin; };
+  return span;
+}
+function selectOrOther(get,set,baseList,ph){
+  const span=el('span','editable'); const paint=()=>{const v=get(); span.textContent=v||ph||'—'; span.classList.toggle('empty',!v);}; paint();
+  span.onclick=()=>{ const cur=get()||''; const opts=['',...baseList]; if(cur&&!opts.includes(cur))opts.push(cur); opts.push('__other__');
+    const sel=el('select','inlinesel'); opts.forEach(o=>sel.appendChild(optn(o,o==='__other__'?'✎ Other…':(o||'—')))); sel.value=cur;
+    span.replaceWith(sel); sel.focus(); let handled=false;
+    const toInput=()=>{ const inp=el('input','inlineinput'); inp.value=cur; sel.replaceWith(inp); inp.focus(); let d=false;
+      const f=()=>{ if(d)return; d=true; set(inp.value.trim()); queueSave(); renderMain(); };
+      inp.onblur=f; inp.onkeydown=e=>{if(e.key==='Enter')inp.blur(); if(e.key==='Escape'){inp.value=cur;inp.blur();}}; };
+    sel.onchange=()=>{ handled=true; if(sel.value==='__other__')toInput(); else { set(sel.value); queueSave(); renderMain(); } };
+    sel.onblur=()=>{ if(!handled)renderMain(); }; };
+  return span;
+}
+function editText(get,set,opts={}){ const span=el('span','editable');
+  const paint=()=>{const v=get(); span.textContent=v||opts.ph||'—'; span.classList.toggle('empty',!v);}; paint();
+  span.onclick=()=>{ const area=opts.area; const inp=el(area?'textarea':'input','inlineinput'+(area?' inlinearea':''));
+    inp.value=get()||''; if(!area) inp.size=Math.max(14,(get()||'').length+4); span.replaceWith(inp); inp.focus();
+    let done=false; const fin=()=>{ if(done)return; done=true; set(inp.value.trim()); queueSave(); renderMain(); };
+    inp.onblur=fin; inp.onkeydown=e=>{ if(e.key==='Enter'&&!area)inp.blur(); if(e.key==='Escape'){inp.value=get()||'';inp.blur();} }; };
+  return span; }
+function editRich(displayFn,get,set,opts={}){ const span=el('span','editable');
+  const paint=()=>{ const h=displayFn(); span.innerHTML=h||('<i class="cv-empty">'+(opts.ph||'—')+'</i>'); span.classList.toggle('empty',!get()); }; paint();
+  span.onclick=()=>{ const inp=el('textarea','inlineinput inlinearea'); inp.value=get()||''; span.replaceWith(inp); inp.focus();
+    let done=false; const fin=()=>{ if(done)return; done=true; set(inp.value.trim()); queueSave(); renderMain(); };
+    inp.onblur=fin; inp.onkeydown=e=>{ if(e.key==='Escape'){inp.value=get()||'';inp.blur();} }; };
+  return span; }
+
+function kvRow(k,vEl){ const r=el('div','kvrow'); r.appendChild(el('span','k',k)); const v=el('span','v'); v.appendChild(vEl); r.appendChild(v); return r; }
+function kvInline(k,vEl){ const s=el('span','kvi'); s.appendChild(el('span','k',k)); s.appendChild(vEl); return s; }
+
+/* ---------- detail ---------- */
+function renderDetail(p){
+  const d=el('div','detail');
+  const pt=p.tracks.paper||(p.tracks.paper={status:'',items:[],journal:''});
+  d.appendChild(kvRow('Stage', selValue(()=>stageOf(p), v=>{p.stage=v;}, STAGE_ORDER, STAGE_LBL, {pill:true,color:v=>STAGE_COLOR[v]})));
+  // PAPER
+  d.appendChild(el('div','seclbl','Paper'));
+  d.appendChild(kvRow('Title', editText(()=>pt.full_title||'',v=>{pt.full_title=v;},{ph:'full paper title'})));
+  d.appendChild(kvRow('Authors', editText(()=>pt.authors||'',v=>{pt.authors=v;},{ph:'author list / citation'})));
+  d.appendChild(kvRow('Authorship', selValue(()=>p.authorship,v=>{p.authorship=v;},AUTH,AUTH_LBL)));
+  d.appendChild(kvRow('Journal', selectOrOther(()=>pt.journal||'',v=>{pt.journal=v;},JOURNALS,'select a journal')));
+  d.appendChild(kvRow('Year', editText(()=>pt.year||'',v=>{pt.year=v;},{ph:'2026'})));
+  d.appendChild(kvRow('Vol/pp/DOI', editText(()=>pt.pubinfo||'',v=>{pt.pubinfo=v;},{ph:'2025;12(3):456–70. doi:… (once published)'})));
+  const pTasks=(pt.items||[]).filter(i=>!(hideCompleted&&i.done));
+  const tl=el('div','tasks'); pTasks.forEach(it=>tl.appendChild(renderTask(pt,it))); d.appendChild(tl);
+  d.appendChild(addRow(pt,'paper','+ add a to-do or note…'));
+
+  // POSTERS
+  d.appendChild(el('div','seclbl','Posters'));
+  (p.posters||[]).forEach(ps=>d.appendChild(renderPoster(p,ps)));
+  const apw=el('div','addrow'); const addp=el('button','addchip','+ Add poster');
+  addp.onclick=()=>{ p.posters=p.posters||[]; p.posters.push(newPoster(p)); queueSave(); renderMain(); }; apw.appendChild(addp); d.appendChild(apw);
+
+  // WORK
+  d.appendChild(el('div','seclbl','Work'));
+  WORK.forEach(t=>{ const tr=p.tracks[t]; const show=(tr?.items||[]).length||revealedWork.has(p.id+'::'+t); if(!show)return; d.appendChild(renderWork(p,t,tr||(p.tracks[t]={status:'',items:[]}))); });
+  const emptyW=WORK.filter(t=>!((p.tracks[t]?.items||[]).length||revealedWork.has(p.id+'::'+t)));
+  if(emptyW.length){ const ar=el('div','addrow'); emptyW.forEach(t=>{const c=el('button','addchip','+ '+cap(t));
+    c.onclick=()=>{p.tracks[t]=p.tracks[t]||{status:'',items:[]}; revealedWork.add(p.id+'::'+t); pendingFocusId='wadd-'+p.id+'-'+t; renderMain();}; ar.appendChild(c);}); d.appendChild(ar); }
+
+  // SPECIMENS (brain-AVM tissue projects)
+  if(p.group==='brain-avm' || (DATA.specimens||[]).some(s=>s.project===p.id)){
+    d.appendChild(el('div','seclbl','Specimens')); d.appendChild(renderProjectSpecimens(p)); }
+
+  // META
+  const mf=el('div','metafoot');
+  mf.appendChild(el('span','k','PI')); mf.appendChild(editText(()=>(p.pi||[]).join(', '),v=>{p.pi=v.split(',').map(x=>x.trim()).filter(Boolean);},{ph:'add PI'}));
+  const labSel=el('select'); DATA.labs.forEach(l=>labSel.appendChild(optn(l,l))); labSel.value=p.lab;
+  labSel.onchange=()=>{p.lab=labSel.value;p.group=''; queueSave(); render();}; mf.appendChild(labSel);
+  if(groupsIn(p.lab).length){ mf.appendChild(el('span','k','group'));
+    const gSel=el('select'); gSel.appendChild(optn('','none')); groupsIn(p.lab).forEach(g=>gSel.appendChild(optn(g.id,g.name))); gSel.value=p.group||'';
+    gSel.onchange=()=>{p.group=gSel.value; queueSave(); render();}; mf.appendChild(gSel); }
+  mf.appendChild(el('span','k','dataset'));
+  const dsel=el('select'); dsel.appendChild(optn('','— none —')); DATASETS.forEach(x=>dsel.appendChild(optn(x,x)));
+  if(p.dataset&&!DATASETS.includes(p.dataset))dsel.appendChild(optn(p.dataset,p.dataset));
+  dsel.appendChild(optn('__other__','＋ custom…')); dsel.value=p.dataset||'';
+  dsel.onchange=()=>{ if(dsel.value==='__other__'){ const v=(prompt('Dataset name:',p.dataset||'')||'').trim(); p.dataset=v; } else p.dataset=dsel.value; queueSave(); renderMain(); };
+  mf.appendChild(dsel);
+  (p.tags||[]).forEach(t=>mf.appendChild(el('span','tag',t)));
+  (p.dirs||[]).forEach(x=>mf.appendChild(el('span','dir','📁'+x.split('/').pop())));
+  mf.appendChild(el('span','spacer'));
+  const del=el('button','del','Delete'); del.onclick=()=>{if(confirm('Delete project "'+p.name+'"? This cannot be undone.')){DATA.projects=DATA.projects.filter(x=>x!==p); expanded.delete(p.id); queueSave(); renderMain();}}; mf.appendChild(del);
+  d.appendChild(mf);
+  return d;
+}
+
+function newPoster(p){ return {id:'ps'+Math.abs(hash(p.id+(_pc++))),authorship:p.authorship||'',type:'Poster',note:'',presentations:[{conference:'',status:'planned',date:''}]}; }
+function renderPoster(p,ps){
+  ps.presentations=ps.presentations||[];
+  const c=el('div','pcard');
+  c.appendChild(kvRow('Authorship', selValue(()=>ps.authorship,v=>ps.authorship=v,AUTH,AUTH_LBL)));
+  c.appendChild(kvRow('Type', selValue(()=>ps.type,v=>ps.type=v,PTYPES,null)));
+  c.appendChild(el('div','preslbl','Presented at'));
+  ps.presentations.forEach(pr=>c.appendChild(renderPres(ps,pr)));
+  const av=el('div','addrow'); const ab=el('button','addchip','+ add venue');
+  ab.onclick=()=>{ ps.presentations.push({conference:'',status:'planned',date:''}); queueSave(); renderMain(); }; av.appendChild(ab); c.appendChild(av);
+  c.appendChild(kvRow('Note', editText(()=>ps.note||'',v=>ps.note=v,{ph:'—'})));
+  const x=el('button','x','×'); x.onclick=()=>{p.posters=p.posters.filter(z=>z!==ps); queueSave(); renderMain();}; c.appendChild(x);
+  return c;
+}
+function renderPres(ps,pr){
+  const r=el('div','presrow');
+  r.appendChild(selectOrOther(()=>pr.conference,v=>pr.conference=v,CONFS,'conference'));
+  r.appendChild(selValue(()=>pr.status,v=>pr.status=v,PRES_STATUS,PRES_STATUS_LBL,{pill:true}));
+  r.appendChild(editText(()=>pr.date||'',v=>pr.date=v,{ph:'date'}));
+  const x=el('button','x','×'); x.onclick=()=>{ps.presentations=ps.presentations.filter(z=>z!==pr); queueSave(); renderMain();}; r.appendChild(x);
+  return r;
+}
+function renderWork(p,tname,tr){
+  const wt=el('div','worktrack'); const head=el('div','whead');
+  head.appendChild(el('span','wtitle',tname)); head.appendChild(selValue(()=>tr.status,v=>tr.status=v,TRACK_STATUS[tname],null,{pill:true}));
+  wt.appendChild(head);
+  const tl=el('div','tasks'); tr.items.filter(i=>!(hideCompleted&&i.done)).forEach(it=>tl.appendChild(renderTask(tr,it))); wt.appendChild(tl);
+  const ar=addRow(tr,tname,'+ add task…'); ar.firstChild.id='wadd-'+p.id+'-'+tname; wt.appendChild(ar); return wt;
+}
+
+/* ---------- Asana-style tasks: priority levels, due dates, first-class nested sub-tasks ---------- */
+const PRIO_LBL={'':'—',high:'High',med:'Med',low:'Low'};
+const PRIO_COLOR={high:'var(--red)',med:'var(--amber)',low:'var(--blue)'};
+function todayISO(){ return today()||new Date().toISOString().slice(0,10); }
+function daysUntil(due){ if(!due)return null; return Math.round((new Date(due+'T00:00')-new Date(todayISO()+'T00:00'))/86400000); }
+function dueMeta(due){ const n=daysUntil(due); if(n===null)return null; if(n<0)return{cls:'due-over',lbl:(-n)+'d late'}; if(n===0)return{cls:'due-soon',lbl:'today'}; if(n<=7)return{cls:'due-soon',lbl:'in '+n+'d'}; return{cls:'due-ok',lbl:due.slice(5)}; }
+function prioChip(it){ return it.priority?el('span','prio prio-'+it.priority,PRIO_LBL[it.priority]):null; }
+function mkTask(text){ return {id:'i'+Math.abs(hash((text||'')+(_pc++))),text:text||'',done:false,owner:'',date:today(),due:'',priority:'',notes:'',links:[],clerical:false,subtasks:[]}; }
+function walkTasks(items,cb){ (items||[]).forEach(it=>{ cb(it); walkTasks(it.subtasks,cb); }); }
+function dueCount(){ let n=0; (DATA&&DATA.projects||[]).forEach(p=>{ if(p.archived)return; Object.values(p.tracks).forEach(tr=>walkTasks(tr.items,it=>{ if(!it.done&&it.due){const d=daysUntil(it.due); if(d!==null&&d<=0)n++;} })); }); return n; }
+
+function taskMeta(it){ const n=[]; if(it.clerical)n.push('⚙'); if((it.notes||'').trim())n.push('📝'); const st=it.subtasks||[]; if(st.length)n.push('☑'+st.filter(s=>s.done).length+'/'+st.length); const lk=(it.links||[]).length; if(lk)n.push('🔗'+lk); return n.join('  '); }
+function renderTask(tr,it){ return renderTaskNode(tr.items,it,0); }
+function renderTaskNode(list,it,depth){
+  const wrap=el('div','taskwrap'); const isO=expandedTasks.has(it.id);
+  const row=el('div','task'+(it.done?' done':'')+(depth?' sub':''));
+  const cb=el('input'); cb.type='checkbox'; cb.checked=!!it.done; cb.onclick=e=>e.stopPropagation();
+  cb.onchange=()=>{it.done=cb.checked; queueSave(); renderMain();}; row.appendChild(cb);
+  const pc=prioChip(it); if(pc)row.appendChild(pc);
+  const body=el('div','body'); if(it.owner)body.appendChild(el('span','who',it.owner+' — ')); body.appendChild(document.createTextNode(it.text||''));
+  const dm=dueMeta(it.due); if(dm)body.appendChild(el('span','duebadge '+dm.cls,dm.lbl));
+  const mm=taskMeta(it); if(mm)body.appendChild(el('span','mini',mm)); row.appendChild(body);
+  row.appendChild(el('span','tcaret'+(isO?' open':''),'▸'));
+  const x=el('button','x','×'); x.onclick=e=>{e.stopPropagation(); const i=list.indexOf(it); if(i>=0)list.splice(i,1); expandedTasks.delete(it.id); queueSave(); renderMain();}; row.appendChild(x);
+  row.onclick=()=>{ isO?expandedTasks.delete(it.id):expandedTasks.add(it.id); renderMain(); };
+  wrap.appendChild(row);
+  if(isO) wrap.appendChild(renderTaskDetail(list,it,depth));
+  return wrap; }
+
+function tdField(label,ctrl){ const r=el('div','tdrow'); r.appendChild(el('div','tdlbl',label)); r.appendChild(ctrl); return r; }
+function renderTaskDetail(list,it,depth){
+  const d=el('div','taskdetail');
+  const grid=el('div','tdgrid');
+  grid.appendChild(tdField('Owner', editText(()=>it.owner,v=>it.owner=v,{ph:'who owns this'})));
+  const di=el('input','tddate'); di.type='date'; di.value=it.due||''; di.onchange=()=>{it.due=di.value; queueSave(); renderMain();};
+  grid.appendChild(tdField('Due', di));
+  grid.appendChild(tdField('Priority', selValue(()=>it.priority,v=>it.priority=v,['','high','med','low'],PRIO_LBL,{pill:true,color:v=>PRIO_COLOR[v]})));
+  d.appendChild(grid);
+  const clL=el('label','tdflag'); const clc=el('input'); clc.type='checkbox'; clc.checked=!!it.clerical;
+  clc.onchange=()=>{it.clerical=clc.checked; queueSave(); renderMain();}; clL.appendChild(clc); clL.appendChild(el('span',null,'⚙ Clerical / infrastructure')); d.appendChild(clL);
+  const ti=el('input','tdinput'); ti.value=it.text||''; ti.onchange=()=>{it.text=ti.value; queueSave();};
+  d.appendChild(tdField('Task', ti));
+  const na=el('textarea','tdarea'); na.value=it.notes||''; na.placeholder='notes — context, where it stands, decisions…'; na.onchange=()=>{it.notes=na.value; queueSave();};
+  d.appendChild(tdField('Notes', na));
+  const lk=el('div','tdrow'); lk.appendChild(el('div','tdlbl','Emails & links'));
+  (it.links||[]).forEach(l=>lk.appendChild(renderLink(it,l)));
+  const li=el('input','tdinput'); li.placeholder='paste an email/thread URL or a reference, then Enter';
+  li.onkeydown=e=>{ if(e.key==='Enter'&&li.value.trim()){ it.links=it.links||[]; const v=li.value.trim();
+    it.links.push({text:v,url:/^https?:\/\//i.test(v)?v:''}); li.value=''; queueSave(); renderMain(); }};
+  lk.appendChild(li); d.appendChild(lk);
+  const su=el('div','tdrow'); su.appendChild(el('div','tdlbl','Sub-tasks'));
+  it.subtasks=it.subtasks||[];
+  const tree=el('div','subtree'); it.subtasks.filter(s=>!(hideCompleted&&s.done)).forEach(s=>tree.appendChild(renderTaskNode(it.subtasks,s,depth+1))); su.appendChild(tree);
+  const si=el('input','tdinput'); si.placeholder='+ add sub-task, then Enter';
+  si.onkeydown=e=>{ if(e.key==='Enter'&&si.value.trim()){ it.subtasks.push(mkTask(si.value.trim())); si.value=''; queueSave(); renderMain(); }};
+  su.appendChild(si); d.appendChild(su);
+  return d;
+}
+function renderLink(it,l){ const row=el('div','linkrow');
+  if(l.url){ const a=el('a',null,l.text||l.url); a.href=l.url; a.target='_blank'; a.rel='noopener'; row.appendChild(a); }
+  else row.appendChild(el('span',null,l.text));
+  const x=el('button','x','×'); x.onclick=()=>{it.links=it.links.filter(z=>z!==l); queueSave(); renderMain();}; row.appendChild(x); return row; }
+function addRow(tr,tname,ph){ const wrap=el('div','addrow'); const inp=el('input'); inp.placeholder=ph||('+ add '+tname+'…');
+  inp.onkeydown=e=>{if(e.key==='Enter'&&inp.value.trim()){addItem(tr,inp.value.trim()); inp.value=''; queueSave(); renderMain();}};
+  wrap.appendChild(inp); return wrap; }
+function addItem(tr,text){ tr.items=tr.items||[]; tr.items.push(mkTask(text)); }
+
+/* ---------- Due-soon cross-project view ---------- */
+let dueFilterMine=false;
+function renderDue(m){
+  DATA.inbox=DATA.inbox||[];                       // standalone quick-capture to-dos / reminders
+  let rows=[]; DATA.projects.forEach(p=>{ if(p.archived)return; Object.values(p.tracks).forEach(tr=>walkTasks(tr.items,it=>{ if(!it.done)rows.push({it,p}); })); });
+  DATA.inbox.forEach(it=>{ if(!it.done) rows.push({it,inbox:true}); });
+  const isMine=r=>{const o=r.it.owner||''; return !o||isMeOwner(o);};
+  if(dueFilterMine) rows=rows.filter(isMine);
+  const h=el('div','lhead'); h.innerHTML='<h1>⏰ My Tasks</h1><div class="stats"><span><b>'+rows.length+'</b> open</span><span>quick reminders + every task across projects</span></div>'; m.appendChild(h);
+
+  // ---- quick capture: jot anything, press Enter ----
+  const qc=el('div','qcap');
+  const qi=el('input','qcap-in'); qi.id='qcap-input'; qi.placeholder='＋  Add a to-do or reminder — press Enter';
+  qi.onkeydown=e=>{ if(e.key==='Enter'&&qi.value.trim()){ const t=mkTask(qi.value.trim()); t.inbox=true; DATA.inbox.unshift(t); qi.value=''; pendingFocusId='qcap-input'; queueSave(); renderMain(); } };
+  qc.appendChild(qi);
+  qc.appendChild(el('span','qcap-hint','Not tied to a project · add a due date or priority after, or leave it as a plain note'));
+  m.appendChild(qc);
+
+  const fb=el('div','specfilters'); fb.appendChild(mkToggle('Only mine / unassigned',dueFilterMine,v=>{dueFilterMine=v; renderMain();})); m.appendChild(fb);
+  const PW={high:0,med:1,low:2,'':3};
+  const mkrow=r=>{ const wrap=el('div','duewrap');
+    const x=el('div','duerow'+(r.inbox?' inboxrow':''));
+    // checkbox on every row — click to complete without leaving the page
+    const cb=el('input','duechk'); cb.type='checkbox'; cb.checked=!!r.it.done; cb.title='mark done';
+    cb.onclick=e=>e.stopPropagation(); cb.onchange=()=>{ r.it.done=cb.checked; queueSave(); renderMain(); }; x.appendChild(cb);
+    const pc=prioChip(r.it); if(pc&&!r.inbox)x.appendChild(pc);
+    if(r.it.due){const dm=dueMeta(r.it.due); x.appendChild(el('span','duebadge '+dm.cls,dm.lbl));}
+    if(r.inbox){
+      const tx=el('span','dtext dedit'); tx.appendChild(editText(()=>r.it.text,v=>{r.it.text=v;},{ph:'reminder'})); x.appendChild(tx);
+      const pr=el('span','dprio'); pr.appendChild(selValue(()=>r.it.priority||'',v=>{r.it.priority=v;},['','high','med','low'],PRIO_LBL)); x.appendChild(pr);
+      const dd=el('input','dduedate'); dd.type='date'; dd.value=r.it.due||''; dd.title='set a due date / reminder';
+      dd.onchange=()=>{ r.it.due=dd.value; queueSave(); renderMain(); }; x.appendChild(dd);
+      x.appendChild(el('span','dproj inboxtag','Inbox'));
+      const del=el('button','x','×'); del.title='delete'; del.onclick=e=>{ e.stopPropagation(); DATA.inbox=DATA.inbox.filter(z=>z!==r.it); queueSave(); renderMain(); }; x.appendChild(del);
+      wrap.appendChild(x); return wrap;
+    }
+    // project task: click the row to expand inline instead of navigating away
+    const open=expandedTasks.has(r.it.id);
+    const tw=el('span','dtext'); tw.appendChild(el('span','dcaret',open?'▾':'▸'));
+    tw.appendChild(document.createTextNode((r.it.owner?r.it.owner+' — ':'')+r.it.text)); x.appendChild(tw);
+    x.appendChild(el('span','dproj',r.p.name));
+    x.onclick=()=>{ if(expandedTasks.has(r.it.id))expandedTasks.delete(r.it.id); else expandedTasks.add(r.it.id); renderMain(); };
+    wrap.appendChild(x);
+    if(open){
+      const ex=el('div','dueexp');
+      if(r.it.notes){ ex.appendChild(el('div','dexp-notes',r.it.notes)); }
+      const meta=el('div','dexp-meta');
+      const mk=(lbl,node)=>{ const s=el('span','dexp-kv'); s.appendChild(el('span','dexp-k',lbl)); const v=el('span'); v.appendChild(node); s.appendChild(v); return s; };
+      meta.appendChild(mk('Priority', selValue(()=>r.it.priority||'',v=>{r.it.priority=v;},['','high','med','low'],PRIO_LBL)));
+      const dd=el('input','dduedate'); dd.type='date'; dd.value=r.it.due||''; dd.onchange=()=>{ r.it.due=dd.value; queueSave(); renderMain(); };
+      meta.appendChild(mk('Due', dd));
+      meta.appendChild(mk('Owner', editText(()=>r.it.owner||'',v=>{r.it.owner=v;},{ph:'who'})));
+      ex.appendChild(meta);
+      const subs=(r.it.subtasks||[]);
+      if(subs.length){ const sl=el('div','dexp-subs'); subs.forEach(st=>{ const sr=el('div','dexp-sub');
+        const scb=el('input'); scb.type='checkbox'; scb.checked=!!st.done; scb.onchange=()=>{ st.done=scb.checked; queueSave(); renderMain(); }; sr.appendChild(scb);
+        sr.appendChild(el('span',st.done?'dexp-subdone':null,st.text)); sl.appendChild(sr); }); ex.appendChild(sl); }
+      const go=el('button','dexp-open','Open in '+r.p.name+' ↗');
+      go.onclick=e=>{ e.stopPropagation(); activeLab=r.p.lab; labView='research'; render(); setTimeout(()=>{const el2=document.getElementById(r.p.id); el2&&el2.scrollIntoView({block:'center'});},60); };
+      ex.appendChild(go);
+      wrap.appendChild(ex);
+    }
+    return wrap; };
+  const dated=rows.filter(r=>r.it.due).sort((a,b)=>a.it.due.localeCompare(b.it.due)), undated=rows.filter(r=>!r.it.due);
+  const bk={over:[],today:[],week:[],later:[]};
+  dated.forEach(r=>{ const n=daysUntil(r.it.due); if(n<0)bk.over.push(r); else if(n===0)bk.today.push(r); else if(n<=7)bk.week.push(r); else bk.later.push(r); });
+  [['over','Overdue'],['today','Today'],['week','This week'],['later','Later']].forEach(([k,lbl])=>{ if(!bk[k].length)return; m.appendChild(el('div','duegroup',lbl+' · '+bk[k].length)); bk[k].forEach(r=>m.appendChild(mkrow(r))); });
+  if(undated.length){
+    m.appendChild(el('div','duegroup','No due date · '+undated.length));
+    const inb=undated.filter(r=>r.inbox), proj=undated.filter(r=>!r.inbox);
+    if(inb.length){ m.appendChild(el('div','duesub','Inbox · '+inb.length));
+      inb.sort((a,b)=>PW[a.it.priority||'']-PW[b.it.priority||'']); inb.forEach(r=>m.appendChild(mkrow(r))); }
+    const byp=new Map(); proj.forEach(r=>{ if(!byp.has(r.p.id))byp.set(r.p.id,{p:r.p,items:[]}); byp.get(r.p.id).items.push(r); });
+    byp.forEach(g=>{ m.appendChild(el('div','duesub',g.p.name+' · '+g.items.length));
+      g.items.sort((a,b)=>PW[a.it.priority||'']-PW[b.it.priority||'']); g.items.forEach(r=>m.appendChild(mkrow(r))); });
+  }
+  if(!rows.length) m.appendChild(el('div','hint','Nothing open — jot a reminder above. 🎉'));
+}
+
+/* ---------- Master specimen tracker ---------- */
+const SP_SITES=['CHOP','BCH','UAB','External','Penn','Yale','Miami','Utah','Oklahoma','Vanderbilt','other'];
+const SP_AVAIL=['','have','retrospective','prospective'];
+const SP_AVAIL_LBL={'':'—',have:'In hand',retrospective:'To pull',prospective:'Prospective'};
+const SP_AVAIL_COLOR={have:'var(--green)',retrospective:'var(--blue)',prospective:'var(--amber)'};
+const SP_GENO=['','KRAS G12D','KRAS G12V','KRAS G12C','KRAS G12A','BRAF V600E','panel-negative','control (TL)','other','pending'];
+const SP_GENO_COLOR={'KRAS G12D':'var(--red)','KRAS G12V':'var(--violet)','KRAS G12C':'var(--red)','KRAS G12A':'var(--red)','BRAF V600E':'var(--amber)','panel-negative':'var(--muted)','control (TL)':'var(--blue)'};
+const SP_KIND=['','avm','control']; const SP_KIND_LBL={'':'All','avm':'AVM','control':'Control'};
+const SP_ROLE=['','index','control','TL control']; const SP_RUPT=['','yes','no'];
+const SP_ASSAYS=[['dpcr','dPCR'],['facs','FACS'],['scrna','scRNA'],['umi','UMI'],['cosmx','CosMx'],['ihc','IHC']];
+const ASY_COLOR={planned:'var(--grey)','in-progress':'var(--amber)',done:'var(--green)'};
+const SP_EMBOL=['','no','yes']; const SP_EMBOL_LBL={'':'Any emb.',no:'Non-embolized',yes:'Embolized'};
+let specFilter={kind:'',site:'',geno:'',avail:'',embol:''}, specGroup='tissue', specNoteOpen=null; const specOpen=new Set();
+function specMatch(s){ if(specFilter.kind&&(s.kind||'avm')!==specFilter.kind)return false; if(specFilter.site&&s.site!==specFilter.site)return false; if(specFilter.geno&&s.geno!==specFilter.geno)return false; if(specFilter.avail&&s.avail!==specFilter.avail)return false; if(specFilter.embol&&(s.embolized||'')!==specFilter.embol)return false;
+  if(curQ){const q=curQ.toLowerCase(); if(!(((s.case||'')+' '+(s.site||'')+' '+(s.geno||'')+' '+(s.role||'')+' '+(s.source||'')+' '+(s.location||'')+' '+(s.notes||'')).toLowerCase().includes(q)))return false;} return true; }
+function cycleChip(get,set,label){ const states=['','planned','in-progress','done'];
+  const s=el('span','asy'); const paint=()=>{const v=get()||''; s.textContent=label; s.title=label+' — '+(v||'not planned'); s.style.background=v?ASY_COLOR[v]:''; s.style.color=v?'#fff':'var(--faint)'; s.classList.toggle('on',!!v);}; paint();
+  s.onclick=()=>{ const v=get()||''; set(states[(states.indexOf(v)+1)%states.length]); paint(); queueSave(); }; return s; }
+function spToggle(get,set,label){ const s=el('span','tchip'); const paint=()=>{s.textContent=label; s.classList.toggle('on',!!get());}; paint();
+  s.onclick=()=>{ set(!get()); paint(); queueSave(); }; return s; }
+function renderSpecimens(m){
+  DATA.specimens=DATA.specimens||[];
+  const h=el('div','lhead'); h.innerHTML='<h1>🧫 Specimen Tracker</h1><div class="stats"><span>snapshot from the geno-pheno master · <b>not live-synced</b> · de-identified codes only (MRNs stay in <code>avm-matching/</code>)</span></div>'; m.appendChild(h);
+  const nb=el('div','specnav'); nb.innerHTML='<b>Two pools</b> — Fresh (→ scRNAseq wing) + FFPE (→ CosMx wing) · genotype-matched G12D / G12V / panel-neg vs temporal-lobe controls.&nbsp;';
+  if(omicsLab()){ const lk=el('button','btn ghost sm','↗ Omics Plan'); lk.onclick=()=>{activeLab=omicsLab(); labView='omics'; render();}; nb.appendChild(lk); }
+  m.appendChild(nb);
+  const sp=DATA.specimens, cnt=f=>sp.filter(f).length;
+  const sum=el('div','specsum');
+  [['Fresh pool',cnt(s=>s.ffrz&&s.kind!=='control')],['FFPE',cnt(s=>s.ffpe&&s.kind==='avm')],['G12D',cnt(s=>s.geno==='KRAS G12D')],['G12V',cnt(s=>s.geno==='KRAS G12V')],['panel-neg',cnt(s=>s.geno==='panel-negative')],['non-embol',cnt(s=>s.kind==='avm'&&s.embolized==='no')],['TL ctrl',cnt(s=>s.kind==='control')],['CHOP',cnt(s=>s.site==='CHOP')],['BCH',cnt(s=>s.site==='BCH')],['UAB',cnt(s=>s.site==='UAB')]].forEach(([l,n])=>{ const c=el('span','sumchip'); c.innerHTML='<b>'+n+'</b> '+l; sum.appendChild(c); });
+  m.appendChild(sum);
+  const fb=el('div','specfilters');
+  const mkSel=(key,list,lbls,ph)=>{ const s=el('select','gmsel'); s.appendChild(optn('',ph)); list.filter(Boolean).forEach(v=>s.appendChild(optn(v,(lbls&&lbls[v])||v))); s.value=specFilter[key]; s.onchange=()=>{specFilter[key]=s.value; renderMain();}; return s; };
+  fb.appendChild(mkSel('kind',SP_KIND,SP_KIND_LBL,'AVM + control'));
+  fb.appendChild(mkSel('site',SP_SITES,null,'All centers'));
+  fb.appendChild(mkSel('geno',SP_GENO,null,'Any genotype'));
+  fb.appendChild(mkSel('embol',SP_EMBOL,SP_EMBOL_LBL,'Any embolization'));
+  fb.appendChild(mkSel('avail',SP_AVAIL,SP_AVAIL_LBL,'Any availability'));
+  const gsel=el('select','gmsel'); [['tissue','Group: tissue'],['site','Group: center'],['geno','Group: genotype'],['kind','Group: kind'],['avail','Group: availability'],['','No grouping']].forEach(([v,l])=>gsel.appendChild(optn(v,l))); gsel.value=specGroup; gsel.onchange=()=>{specGroup=gsel.value; renderMain();}; fb.appendChild(gsel);
+  m.appendChild(fb);
+  const rows=sp.filter(specMatch), groups={};
+  const ctrlKey=s=> s.site==='External' ? ((s.assays&&s.assays.cosmx==='done')?'Public control · FFPE (CosMx)':'Public control · scRNAseq') : 'Temporal-lobe control · internal';
+  const gkey=s=> specGroup==='tissue'?(s.kind==='control'?ctrlKey(s):(s.ffrz?'Fresh pool':'FFPE archive')): specGroup==='kind'?(SP_KIND_LBL[s.kind||'avm']): specGroup==='avail'?(SP_AVAIL_LBL[s.avail]||s.avail||'—'): specGroup?(s[specGroup]||'—'):'All specimens';
+  rows.forEach(s=>{ const k=gkey(s); (groups[k]=groups[k]||[]).push(s); });
+  const ORD={'Fresh pool':0,'FFPE archive':1,'Public control · scRNAseq':2,'Public control · FFPE (CosMx)':3,'Temporal-lobe control · internal':4};
+  const keys=Object.keys(groups).sort((a,b)=>(ORD[a]??9)-(ORD[b]??9)||a.localeCompare(b));
+  keys.forEach(k=>{
+    const list=groups[k]; const open = list.length<=40 ? !specOpen.has('shut:'+k) : specOpen.has(k);
+    if(specGroup){ const gh=el('div','specgrp specgrp-tog'); gh.innerHTML='<span class="gcar">'+(open?'▾':'▸')+'</span> '+k+' <span class="gc">'+list.length+'</span>';
+      gh.onclick=()=>{ if(list.length<=40){ open?specOpen.add('shut:'+k):specOpen.delete('shut:'+k);} else { open?specOpen.delete(k):specOpen.add(k);} renderMain(); }; m.appendChild(gh); }
+    if(!open) return;
+    const tbl=el('div','spectable');
+    const hd=el('div','specrow spechead');
+    ['Case','Design','Clinical','VAF','Fresh','FFPE','Avail','dPCR · FACS · scRNA · UMI · CosMx · IHC','',''].forEach(c=>hd.appendChild(el('div','sc',c)));
+    tbl.appendChild(hd);
+    list.forEach(s=>tbl.appendChild(renderSpecRow(s)));
+    m.appendChild(tbl);
+  });
+  if(!rows.length) m.appendChild(el('div','hint','No specimens match these filters.'));
+  const aw=el('div','addproj'); const b=el('button','btn ghost sm','+ Add specimen');
+  b.onclick=()=>{ DATA.specimens.push({id:'sp'+Math.abs(hash('sp'+(_pc++))),kind:'avm',matchset:'',case:'',site:'CHOP',role:'',geno:'pending',ruptured:'',sex:'',age:'',location:'',vaf:'',ffpe:false,ffrz:false,matched:false,avail:'prospective',source:'',n:1,notes:'',project:'',assays:{dpcr:'',facs:'',scrna:'',umi:'',cosmx:'',ihc:''}}); queueSave(); renderMain(); };
+  aw.appendChild(b); m.appendChild(aw);
+}
+function renderSpecRow(s){
+  s.assays=s.assays||{};
+  const r=el('div','specrow');
+  const cCase=el('div','sc casecell'); cCase.appendChild(editText(()=>s.case,v=>s.case=v,{ph:'case'}));
+  const subt=[s.site,(s.matchset&&s.matchset!==s.case)?('· '+s.matchset):''].filter(Boolean).join(' '); if(subt)cCase.appendChild(el('span','blk',subt)); r.appendChild(cCase);
+  const cD=el('div','sc designcell'); const g=selectOrOther(()=>s.geno,v=>s.geno=v,SP_GENO.filter(Boolean),'genotype'); g.style.color=SP_GENO_COLOR[s.geno]||''; g.style.fontWeight='600'; cD.appendChild(g);
+  const meta=[]; if(s.role)meta.push(s.role==='index'?'index':s.role==='TL control'?'TL ctrl':'ctrl'); if(s.ruptured)meta.push(s.ruptured==='yes'?'rup':'unrup'); if(s.source)meta.push(s.source); if(s.n>1)meta.push('n='+s.n);
+  if(meta.length)cD.appendChild(el('span','dmeta',meta.join(' · '))); r.appendChild(cD);
+  const cl=[]; if(s.sex)cl.push(s.sex==='F'?'♀':s.sex==='M'?'♂':s.sex); if(s.age)cl.push(s.age+'y'); if(s.location)cl.push(s.location); if(s.embolized==='yes')cl.push('embol');
+  const cC=el('div','sc clin',cl.join(' · ')||'—'); if(s.embolized==='yes')cC.classList.add('embolized'); r.appendChild(cC);
+  const cV=el('div','sc'); cV.appendChild(editText(()=>s.vaf,v=>s.vaf=v,{ph:'—'})); r.appendChild(cV);
+  const cZ=el('div','sc'); cZ.appendChild(spToggle(()=>s.ffrz,v=>{s.ffrz=v;s.matched=s.ffpe&&s.ffrz;},'Fresh')); r.appendChild(cZ);
+  const cF=el('div','sc'); cF.appendChild(spToggle(()=>s.ffpe,v=>{s.ffpe=v;s.matched=s.ffpe&&s.ffrz;},'FFPE')); r.appendChild(cF);
+  const cA=el('div','sc'); cA.appendChild(selValue(()=>s.avail,v=>s.avail=v,SP_AVAIL,SP_AVAIL_LBL,{pill:true,color:v=>SP_AVAIL_COLOR[v]})); r.appendChild(cA);
+  const cAsy=el('div','sc asycell'); SP_ASSAYS.forEach(([k,lbl])=>cAsy.appendChild(cycleChip(()=>s.assays[k],v=>s.assays[k]=v,lbl))); r.appendChild(cAsy);
+  const cN=el('div','sc'); const nb=el('button','notebtn',(specNoteOpen===s.id?'▾':((s.notes?'📝':'⚙')))); nb.title='clinical / provenance / notes'; nb.onclick=()=>{ specNoteOpen=(specNoteOpen===s.id?null:s.id); renderMain(); }; cN.appendChild(nb); r.appendChild(cN);
+  const cDel=el('div','sc'); const x=el('button','x','×'); x.onclick=()=>{ if(confirm('Remove '+(s.case||'specimen')+'?')){DATA.specimens=DATA.specimens.filter(z=>z!==s); queueSave(); renderMain();} }; cDel.appendChild(x); r.appendChild(cDel);
+  const wrap=el('div','specrowwrap'); wrap.appendChild(r);
+  if(specNoteOpen===s.id){
+    const nd=el('div','specnote'); const grid=el('div','specdetgrid');
+    const fld=(lbl,ctrl)=>{const w=el('div','tdrow'); w.appendChild(el('div','tdlbl',lbl)); w.appendChild(ctrl); return w;};
+    grid.appendChild(fld('Kind', selValue(()=>s.kind||'avm',v=>s.kind=v,['avm','control'],SP_KIND_LBL)));
+    grid.appendChild(fld('Role', selValue(()=>s.role||'',v=>s.role=v,SP_ROLE,null)));
+    grid.appendChild(fld('Center', selectOrOther(()=>s.site,v=>s.site=v,SP_SITES.filter(Boolean),'center')));
+    grid.appendChild(fld('Matched set', editText(()=>s.matchset||'',v=>s.matchset=v,{ph:'e.g. AVM_01'})));
+    grid.appendChild(fld('Ruptured', selValue(()=>s.ruptured||'',v=>s.ruptured=v,SP_RUPT,null)));
+    grid.appendChild(fld('Embolized', selValue(()=>s.embolized||'',v=>s.embolized=v,SP_RUPT,null)));
+    grid.appendChild(fld('Sex', editText(()=>s.sex||'',v=>s.sex=v,{ph:'M/F'})));
+    grid.appendChild(fld('Age', editText(()=>s.age||'',v=>s.age=v,{ph:'yrs'})));
+    grid.appendChild(fld('Location', editText(()=>s.location||'',v=>s.location=v,{ph:'lobe'})));
+    grid.appendChild(fld('Source / dataset', editText(()=>s.source||'',v=>s.source=v,{ph:'external dataset'})));
+    grid.appendChild(fld('N samples', editText(()=>String(s.n||1),v=>s.n=parseInt(v)||1,{ph:'1'})));
+    nd.appendChild(grid);
+    const ta=el('textarea','tdarea'); ta.value=s.notes||''; ta.placeholder='notes — provenance, pipeline status, decisions…'; ta.onchange=()=>{s.notes=ta.value; queueSave();}; nd.appendChild(ta);
+    wrap.appendChild(nd);
+  }
+  return wrap;
+}
+// compact, editable specimen panel shown beneath the tasks on a brain-AVM project page
+function renderProjectSpecimens(p){
+  const wrap=el('div','projspec');
+  const mine=(DATA.specimens||[]).filter(s=>s.project===p.id);
+  if(mine.length){
+    const cnt=f=>mine.filter(f).length; const sum=el('div','specsum');
+    [['Fresh pool',cnt(s=>s.ffrz&&s.kind!=='control')],['FFPE',cnt(s=>s.ffpe&&s.kind==='avm')],['G12D',cnt(s=>s.geno==='KRAS G12D')],['G12V',cnt(s=>s.geno==='KRAS G12V')],['PN',cnt(s=>s.geno==='panel-negative')],['non-embol',cnt(s=>s.kind==='avm'&&s.embolized==='no')],['TL ctrl',cnt(s=>s.kind==='control')]].forEach(([l,n])=>{ if(!n)return; const c=el('span','sumchip'); c.innerHTML='<b>'+n+'</b> '+l; sum.appendChild(c); });
+    wrap.appendChild(sum);
+  }
+  // render the active fresh pool inline; summarize the rest (FFPE archive / controls)
+  const fresh=mine.filter(s=>s.ffrz&&s.kind!=='control');
+  fresh.forEach(s=>{ s.assays=s.assays||{}; const r=el('div','pspecrow');
+    r.appendChild(editText(()=>s.case,v=>s.case=v,{ph:'case'}));
+    r.appendChild(selectOrOther(()=>s.site,v=>s.site=v,SP_SITES.filter(Boolean),'site'));
+    const g=selectOrOther(()=>s.geno,v=>s.geno=v,SP_GENO.filter(Boolean),'genotype'); g.style.color=SP_GENO_COLOR[s.geno]||''; r.appendChild(g);
+    r.appendChild(selValue(()=>s.avail,v=>s.avail=v,SP_AVAIL,SP_AVAIL_LBL,{pill:true,color:v=>SP_AVAIL_COLOR[v]}));
+    const asy=el('span','asycell'); SP_ASSAYS.forEach(([k,lbl])=>asy.appendChild(cycleChip(()=>s.assays[k],v=>s.assays[k]=v,lbl))); r.appendChild(asy);
+    const unl=el('button','x','×'); unl.title='unlink from this project'; unl.onclick=()=>{s.project=''; queueSave(); renderMain();}; r.appendChild(unl);
+    wrap.appendChild(r); });
+  const rest=mine.length-fresh.length;
+  if(rest>0) wrap.appendChild(el('div','hint',rest+' FFPE / control specimens linked — grouped, filterable & editable in the ↗ Specimen Tracker.'));
+  if(!mine.length) wrap.appendChild(el('div','hint','No specimens linked yet — link an existing one or add a new one below.'));
+  const ar=el('div','addrow');
+  const unlinked=(DATA.specimens||[]).filter(s=>s.project!==p.id);
+  if(unlinked.length){ const sel=el('select','gmsel'); sel.style.width='auto'; sel.appendChild(optn('','+ link a specimen…'));
+    unlinked.forEach(s=>sel.appendChild(optn(s.id,(s.case||'—')+' · '+(s.site||''))));
+    sel.onchange=()=>{ const s=unlinked.find(x=>x.id===sel.value); if(s){s.project=p.id; queueSave(); renderMain();} }; ar.appendChild(sel); }
+  const nb=el('button','addchip','+ New specimen'); nb.onclick=()=>{ DATA.specimens.push({id:'sp'+Math.abs(hash('sp'+(_pc++))),kind:'avm',matchset:'',case:'',site:'CHOP',role:'',geno:'pending',ruptured:'',sex:'',age:'',location:'',vaf:'',ffpe:false,ffrz:false,matched:false,avail:'prospective',source:'',n:1,notes:'',assays:{dpcr:'',facs:'',scrna:'',umi:'',cosmx:'',ihc:''},project:p.id}); queueSave(); renderMain(); }; ar.appendChild(nb);
+  const vt=el('button','addchip','↗ open tracker'); vt.onclick=()=>{activeLab='__specimens__'; render();}; ar.appendChild(vt);
+  wrap.appendChild(ar);
+  return wrap;
+}
+
+/* ---------- Curriculum Vitae (standard academic format) ---------- */
+const PROF=k=>((DATA.profile||(DATA.profile={}))[k]||'');
+function profField(k,ph){ return editText(()=>PROF(k),v=>{(DATA.profile||(DATA.profile={}))[k]=v;},{ph}); }
+function editLink(key,ph,wrap){
+  const inp=el('input','inlineinput'); inp.value=PROF(key); inp.placeholder=ph||'paste URL'; inp.size=Math.max(18,(PROF(key)||'').length+4);
+  wrap.innerHTML=''; wrap.appendChild(inp); inp.focus(); let done=false;
+  const fin=()=>{ if(done)return; done=true; (DATA.profile||(DATA.profile={}))[key]=inp.value.trim(); queueSave(); renderMain(); };
+  inp.onblur=fin; inp.onkeydown=e=>{ if(e.key==='Enter')inp.blur(); if(e.key==='Escape'){inp.value=PROF(key);inp.blur();} };
+}
+function linkField(key,label,ph,opts={}){
+  const url=PROF(key); const wrap=el('span','cvlink');
+  if(url){
+    let href;
+    if(opts.mailto) href='mailto:'+url;
+    else href=/^https?:\/\//i.test(url)?url:'https://'+url;
+    const a=el('a',null,opts.showValue?url:label); a.href=href;
+    if(!opts.mailto){ a.target='_blank'; a.rel='noopener'; }
+    wrap.appendChild(a);
+    const ed=el('button','lnkedit','✎'); ed.title='edit link'; ed.onclick=()=>editLink(key,ph,wrap); wrap.appendChild(ed);
+  } else {
+    const add=el('span','editable empty','＋ '+label); add.onclick=()=>editLink(key,ph,wrap); wrap.appendChild(add);
+  }
+  return wrap;
+}
+// Bold the CV owner wherever they appear in an author list. Name comes from
+// profile.name, so the same app works for whoever owns the workspace.
+function boldMe(s){
+  const out=esc(s);
+  const parts=myNameParts();
+  if(parts.length<2) return out;
+  const first=parts[0], last=parts[parts.length-1];
+  const mid=parts.slice(1,-1).map(p=>p[0]).filter(c=>/[A-Za-z]/.test(c));
+  //  "Jane Doe" · "Jane R. Doe" · "Jane Rose Doe"
+  const full=new RegExp('('+rxEsc(first)+'(?:\\s+(?:[A-Z][a-z]+|[A-Z]\\.))?\\s+'+rxEsc(last)+')','g');
+  //  "Doe J" · "Doe J." · "Doe JR" · "Doe, J.R."
+  const inits=rxEsc(first[0])+'\\.?'+(mid.length?'(?:\\s*'+mid.map(c=>rxEsc(c)+'\\.?').join('\\s*')+')?':'');
+  const abbrev=new RegExp('('+rxEsc(last)+',?\\s*'+inits+')','g');
+  return out.replace(full,'<b>$1</b>').replace(abbrev,'<b>$1</b>');
+}
+// Latin / scientific terms that should be italicised anywhere they appear in CV prose.
+const SCI_RE=new RegExp('(?<![A-Za-z])('+[
+  'post[-\\s]?mortem','ante[-\\s]?mortem',
+  'in[-\\s]+vivo','ex[-\\s]+vivo','in[-\\s]+vitro','in[-\\s]+situ','in[-\\s]+silico','in[-\\s]+utero','in[-\\s]+ovo',
+  'in[-\\s]+toto','in[-\\s]+vacuo','in[-\\s]+extremis','in[-\\s]+extenso',
+  'de[-\\s]+novo','per[-\\s]+se','a[-\\s]+priori','a[-\\s]+posteriori','ad[-\\s]+hoc',
+  'sensu[-\\s]+stricto','sensu[-\\s]+lato','vice[-\\s]+versa'
+].join('|')+')(?![A-Za-z])','gi');
+function sciItalic(s){ return esc(s).replace(SCI_RE,'<i>$1</i>'); }
+// editable field that displays Latin terms in italics but edits the raw plain text
+function editSci(get,set,opts){ return editRich(()=>sciItalic(get()||''), get, set, opts||{}); }
+const NAME_PARTICLES=new Set(['de','del','della','van','von','der','den','la','le','di','da','dos','das','st','st.','san','bin','al','ter','ten']);
+function toAMA(name){
+  name=(name||'').trim(); if(!name) return name;
+  let mark=''; const mm=name.match(/[\*\^†#]+$/); if(mm){ mark=mm[0]; name=name.slice(0,-mark.length).trim(); }
+  if(name.includes(',')){ const p=name.split(/,\s*/); const ini=((p[1]||'').match(/[A-Za-z]/g)||[]).join('').toUpperCase();
+    return p[0].trim()+(ini?', '+ini:'')+mark; }
+  const toks=name.split(/\s+/).filter(Boolean); if(toks.length<2) return name+mark;
+  let i=toks.length-1; const sur=[toks[i]]; i--;
+  while(i>=1 && NAME_PARTICLES.has(toks[i].toLowerCase().replace('.',''))){ sur.unshift(toks[i]); i--; }
+  const ini=toks.slice(0,i+1).flatMap(g=>g.split('-')).map(x=>x[0]).filter(c=>/[A-Za-z]/.test(c)).join('').toUpperCase();
+  return sur.join(' ')+(ini?', '+ini:'')+mark;
+}
+function abbrevAuthors(a){
+  a=(a||'').replace(/\s*\(\d{4}\)\s*$/,'').trim(); if(!a) return a;
+  if(a.includes('…')||a.includes('...')) return a.replace(/([A-Za-z])\./g,'$1');   // already abbreviated → just unify (drop initial periods)
+  let parts=a.split(/,\s*/).map(s=>s.trim()).filter(Boolean).map(toAMA);
+  if(parts.length<=3) return parts.join(', ');
+  const last=parts.length-1;
+  const mk=s=>(String(s).match(/[\*\^†#]+$/)||[''])[0];
+  // co-senior: if the last two share an equal-contribution marker, show both as the tail
+  let tail=parts[last], tailStart=last;
+  if(mk(parts[last]) && parts[last-1] && mk(parts[last-1])===mk(parts[last])){ tail=parts[last-1]+' & '+parts[last]; tailStart=last-1; }
+  const tailJoin=h=> h+', … '+(tail.includes(' & ')?tail:'& '+tail);
+  const ki=parts.findIndex(p=>isMeName(p));
+  if(ki<0) return tailJoin(parts[0]);
+  if(tailStart-ki<=1) return parts.join(', ');                // I'm adjacent to the tail → show all
+  if(ki<=6) return tailJoin(parts.slice(0,ki+1).join(', '));  // top 7 → list up to me
+  return tailJoin(parts[0]+', … '+parts[ki]);                 // deep middle → first … me … & tail
+}
+function detectAuthorship(authors){
+  const parts=authors.split(/;|,|\band\b|&/i).map(s=>s.trim()).filter(Boolean);
+  const idx=parts.findIndex(a=>isMeName(a));
+  if(idx<0) return '';
+  const meStar=/\*/.test(parts[idx]||'');
+  if(idx===0) return meStar?'co-first':'first';
+  if(meStar && /\*/.test(parts[0]||'')) return 'co-first';
+  if(idx===1) return 'second';
+  if(idx===2) return 'third';
+  return 'middle';
+}
+function citationBuilderBox(){
+  const box=el('details','paste cbbox');
+  box.innerHTML=`<summary>✦ Highlight my contribution — build a citation</summary><div class="body">
+    <input id="cbTitle" class="tdinput" placeholder="Paper title">
+    <textarea id="cbAuthors" placeholder="Full author list — paste in any format; mark co-first authors with *"></textarea>
+    <div id="cbPreview" class="cbprev"></div>
+    <div class="prow"><span class="hint">Save to:</span>
+      <select id="cbLab"></select><select id="cbProject"></select>
+      <button class="btn sm" id="cbApply">Save to publications</button>
+      <span class="hint" id="cbWhy"></span></div></div>`;
+  return box;
+}
+function wireCitationBuilder(){
+  const T=$('#cbTitle'), A=$('#cbAuthors'), prev=$('#cbPreview'), labSel=$('#cbLab'), projSel=$('#cbProject'), why=$('#cbWhy');
+  if(!T) return;
+  const drawPreview=()=>{
+    const title=T.value.trim(), authors=A.value.trim(), auth=detectAuthorship(authors);
+    let html = authors?boldMe(authors):'<span class="cv-empty">author list…</span>';
+    if(title) html+='. '+esc(title)+'.';
+    if(auth) html+=' <span class="cv-status">['+(AUTH_LBL[auth]||auth)+']</span>';
+    prev.innerHTML=html;
+  };
+  const fillProjects=()=>{ const parsed={title:T.value.trim(),journal:''}; projSel.innerHTML=''; projSel.appendChild(optn('__new__','＋ New project'));
+    const ranked=projectsIn(labSel.value).map(p=>({p,s:scorePaperMatch(parsed,p)})).sort((a,b)=>b.s-a.s);
+    ranked.forEach(({p,s})=>projSel.appendChild(optn(p.id,(s>0?'('+s+') ':'')+p.name)));
+    if(ranked[0]&&ranked[0].s>=3) projSel.value=ranked[0].p.id;
+  };
+  labSel.innerHTML=''; const realLabs=DATA.labs.filter(l=>!CV_SECTIONS.includes(l)&&l!=='__cv__');
+  realLabs.forEach(l=>labSel.appendChild(optn(l,l))); labSel.value=realLabs[0]||DATA.labs[0];
+  T.oninput=()=>{drawPreview(); fillProjects();}; A.oninput=drawPreview; labSel.onchange=fillProjects;
+  drawPreview(); fillProjects();
+  $('#cbApply').onclick=()=>{
+    const title=T.value.trim(), authors=A.value.trim(); if(!title){ why.textContent='need a title'; return; }
+    const auth=detectAuthorship(authors), tgt=projSel.value, lab=labSel.value;
+    if(tgt==='__new__'){
+      const id=slug(title)+'-'+Math.abs(hash(title+(_pc++))).toString(36).slice(0,4);
+      const tracks={paper:{status:'',items:[],journal:'',full_title:title,authors,pubinfo:''}}; WORK.forEach(w=>tracks[w]={status:'',items:[]});
+      DATA.projects.push({id,name:title.slice(0,60),lab,group:'',priority:0,stage:'manuscript-prep',authorship:auth,dataset:'',pi:[],dirs:[],tags:[],posters:[],tracks});
+      why.textContent='✓ created "'+title.slice(0,34)+'"';
+    } else {
+      const p=DATA.projects.find(x=>x.id===tgt); if(!p){ why.textContent='pick a target'; return; }
+      const pt=p.tracks.paper||(p.tracks.paper={status:'',items:[]});
+      pt.full_title=title; pt.authors=authors; if(auth)p.authorship=auth;
+      why.textContent='✓ updated "'+p.name+'"';
+    }
+    queueSave(); renderMain();
+  };
+}
+const entriesOf=sec=>DATA.entries.filter(e=>e.section===sec);
+function pubBucket(p){ const s=stageOf(p), st=(p.tracks.paper||{}).status||'';
+  if(s==='accepted'||st==='published'||st==='accepted') return 'pub';
+  if(['in-review','in-revision','responding-to-feedback'].includes(s)) return 'review';
+  if(['in-submission','prepared-for-submission'].includes(s)) return 'submission';
+  if(['manuscript-prep','ready-for-feedback'].includes(s)) return 'prep';
+  return null; }
+const PUB_LBL={pub:'Accepted',review:'Under review',prep:'In preparation'};
+const PUB_COL={pub:'var(--green)',review:'var(--blue)',prep:'var(--amber)'};
+
+function cvHidden(){ const p=DATA.profile||(DATA.profile={}); return p.cvHidden||(p.cvHidden={}); }
+function cvSection(m,title){
+  const s=el('div','cv-sec'); const hidden=!!cvHidden()[title];
+  if(hidden) s.classList.add('cv-hidden');
+  const h=el('div','cv-h2wrap');
+  h.appendChild(el('div','cv-h2',title));
+  const tog=el('button','cv-eye'+(hidden?' off':''), hidden?'🚫 hidden from PDF':'👁 in PDF');
+  tog.title=hidden?'Click to include this section in the printout':'Click to hide this section from the printout (kept in the app)';
+  tog.onclick=()=>{ const H=cvHidden(); if(H[title])delete H[title]; else H[title]=true; queueSave(); renderMain(); };
+  h.appendChild(tog);
+  s.appendChild(h); m.appendChild(s); return s; }
+function cvNone(sec,txt){ sec.appendChild(el('div','cv-none',txt)); }
+const eT=(e,f,ph)=>editText(()=>e[f]||'',v=>{e[f]=v;},{ph});
+function cvDel(arr,e){ const x=el('button','cv-del','×'); x.title='delete entry';
+  x.onclick=()=>{ const i=arr.indexOf(e); if(i>=0){arr.splice(i,1); queueSave(); renderMain();} }; return x; }
+function cvKV(label,valEl,empty){ const r=el('div','cv-kv'+(empty?' empty':'')); if(label)r.appendChild(el('span','kk',label));
+  const v=el('span'); v.appendChild(valEl); r.appendChild(v); return r; }
+function cvAddBtn(section,kind,label){ const b=el('button','cv-add',label||'+ Add');
+  b.onclick=()=>{ const e={id:'e'+Math.abs(hash('e'+section+(_pc++))),section,title:'',org:'',amount:'',date:'',note:''};
+    if(kind)e.kind=kind; if(section==='Education'){e.gpa='';e.awards='';e.activities='';}
+    DATA.entries.push(e); queueSave(); renderMain(); }; return b; }
+const revealedFields=new Set();
+function editPart(e,key,idx,ph){
+  return editText(
+    ()=>{ const parts=(e[key]||'').split(/\s*;\s*/); return (parts[idx]||'').trim(); },
+    v=>{ const parts=(e[key]||'').split(/\s*;\s*/).map(x=>x.trim()); parts[idx]=v; e[key]=parts.filter(Boolean).join('; '); },
+    {ph});
+}
+function renderMultiField(container,e,f){
+  const raw=(e[f.key]||'').trim();
+  const parts=raw?raw.split(/\s*;\s*/).filter(Boolean):[''];
+  parts.forEach((part,i)=>{
+    const r=el('div','cv-kv'+(part?'':' empty'));
+    r.appendChild(el('span','kk', i===0?f.label:''));
+    const v=el('span'); v.appendChild(editPart(e,f.key,i,f.ph)); r.appendChild(v);
+    if(i===parts.length-1){ const add=el('button','cv-chip','+'); add.title='add another';
+      add.onclick=()=>{ const arr=(e[f.key]||'').split(/\s*;\s*/).map(x=>x.trim()).filter(Boolean); arr.push('');
+        e[f.key]=arr.join('; '); revealedFields.add(e.id+'::'+f.key); renderMain(); }; r.appendChild(add); }
+    container.appendChild(r);
+  });
+}
+function entryLink(e,key,l){
+  const wrap=el('span','cvlink');
+  if(l.url){
+    const a=el('a',null,l.label||l.url); a.href=/^https?:/i.test(l.url)?l.url:'https://'+l.url; a.target='_blank'; a.rel='noopener'; wrap.appendChild(a);
+    const ed=el('button','lnkedit','✎'); ed.title='edit'; ed.onclick=()=>editEntryLink(e,key,l,wrap); wrap.appendChild(ed);
+  } else {
+    const add=el('span','editable empty',(l.label||'link')+' — add URL'); add.onclick=()=>editEntryLink(e,key,l,wrap); wrap.appendChild(add);
+  }
+  return wrap;
+}
+function editEntryLink(e,key,l,wrap){
+  wrap.innerHTML='';
+  const li=el('input','inlineinput'); li.value=l.label||''; li.placeholder='label'; li.style.width='90px';
+  const ui=el('input','inlineinput'); ui.value=l.url||''; ui.placeholder='paste URL'; ui.style.minWidth='210px'; ui.style.marginLeft='4px';
+  wrap.appendChild(li); wrap.appendChild(ui); ui.focus();
+  let done=false; const fin=()=>{ if(done)return; done=true; l.label=li.value.trim(); l.url=ui.value.trim();
+    if(!l.label&&!l.url){ const arr=e[key]||[]; const i=arr.indexOf(l); if(i>=0)arr.splice(i,1); } queueSave(); renderMain(); };
+  ui.onblur=fin; li.onkeydown=ev=>{ if(ev.key==='Enter')ui.focus(); }; ui.onkeydown=ev=>{ if(ev.key==='Enter')ui.blur(); if(ev.key==='Escape')ui.blur(); };
+}
+function renderLinksField(container,e,f){
+  e[f.key]=e[f.key]||[];
+  const row=el('div','cv-kv'); row.appendChild(el('span','kk',f.label||'Press:'));
+  const v=el('span','cvlinks');
+  e[f.key].forEach((l,i)=>{ if(i)v.appendChild(document.createTextNode(' · ')); v.appendChild(entryLink(e,f.key,l)); });
+  const add=el('button','cv-chip','+'); add.title='add link';
+  add.onclick=()=>{ e[f.key].push({label:'',url:''}); revealedFields.add(e.id+'::'+f.key); renderMain(); };
+  v.appendChild(add); row.appendChild(v); container.appendChild(row);
+}
+function fieldRows(container,e,fields){
+  const chips=[];
+  fields.forEach(f=>{
+    const has = f.links ? ((e[f.key]||[]).length>0) : ((e[f.key]||'').trim()!=='');
+    if(has||revealedFields.has(e.id+'::'+f.key)){
+      if(f.links){ renderLinksField(container,e,f); }
+      else if(f.multi){ renderMultiField(container,e,f); }
+      else if(f.para){ const r=el('div','cv-kv'+(has?'':' empty')); r.appendChild(el('span','kk',f.label||''));
+        const v=el('span','cv-paraval'); v.appendChild(editSci(()=>e[f.key]||'',x=>{e[f.key]=x;},{ph:f.ph,area:true})); r.appendChild(v); container.appendChild(r); }
+      else if(f.block){ const s=el('div','cv-block2'+(has?'':' empty')); s.appendChild(editSci(()=>e[f.key]||'',x=>{e[f.key]=x;},{ph:f.ph,area:true})); container.appendChild(s); }
+      else if(f.sub){ const s=el('div','cv-sub'+(has?'':' empty')); s.appendChild(eT(e,f.key,f.ph)); container.appendChild(s); }
+      else container.appendChild(cvKV(f.label, eT(e,f.key,f.ph), !has));
+    } else chips.push(f);
+  });
+  if(chips.length){ const row=el('div','cv-chips');
+    chips.forEach(f=>{ const c=el('button','cv-chip','+ '+(f.chip||f.label.replace(':','')));
+      c.onclick=()=>{ revealedFields.add(e.id+'::'+f.key); renderMain(); }; row.appendChild(c); });
+    container.appendChild(row); }
+}
+function renderCVEntry(arr,e,opts){
+  const it=el('div','cv-entry');
+  const tr=el('div','cv-titlerow');
+  const t=el('span','cv-t'); t.appendChild(eT(e,'title',opts.titlePh||'title')); tr.appendChild(t);
+  const dt=el('span','cv-date'+((e.date||'').trim()?'':' empty')); dt.appendChild(eT(e,'date',opts.datePh||'year')); tr.appendChild(dt);
+  it.appendChild(tr); it.appendChild(cvDel(arr,e));
+  fieldRows(it,e,opts.fields||[]);
+  return it;
+}
+const EDU_FIELDS=[{key:'org',label:'Degree:',ph:'degree',chip:'Degree'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'gpa',label:'GPA:',ph:'e.g. 3.95 / 4.00',chip:'GPA'},{key:'awards',label:'Awards:',para:true,ph:'—',chip:'Awards'},{key:'activities',label:'Activities:',para:true,ph:'—',chip:'Activities'},{key:'note',para:true,ph:'description',chip:'Description'}];
+const RES_FIELDS=[{key:'position',label:'Position:',ph:'position / title',chip:'Position'},{key:'institution',label:'Institution:',ph:'institution',chip:'Institution'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'supervisor',label:'Supervisor:',ph:'direct supervisor',chip:'Supervisor'},{key:'note',para:true,ph:'description of work',chip:'Description'}];
+const EXP_FIELDS=[{key:'position',label:'Role:',ph:'role / position',chip:'Role'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'pi',label:'Mentors:',ph:'mentor',chip:'Mentors',multi:true},{key:'note',para:true,ph:'description',chip:'Description'},{key:'links',label:'Press:',links:true,chip:'Press'}];
+const HON_FIELDS=[{key:'org',para:true,ph:'detail',chip:'Detail'},{key:'score',label:'Score:',ph:'e.g. 528/528',chip:'Score'},{key:'amount',label:'Award:',ph:'$—',chip:'Award'},{key:'note',para:true,ph:'description',chip:'Description'}];
+const PEER_FIELDS=[{key:'org',sub:true,ph:'role (e.g. Reviewer)',chip:'Role'},{key:'note',block:true,ph:'manuscript / topic reviewed',chip:'Note'},{key:'doi',label:'Status / DOI:',ph:'e.g. in press · or doi:10.…',chip:'DOI'}];
+const renderEduItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'institution',datePh:'period',fields:EDU_FIELDS});
+const renderResItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'Lab of …',datePh:'period',fields:RES_FIELDS});
+const renderExpItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'organization',datePh:'period',fields:EXP_FIELDS});
+const renderHonorItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'award / honor',datePh:'year',fields:HON_FIELDS});
+const renderPeerItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'journal',datePh:'year',fields:PEER_FIELDS});
+function cvYearKey(s){ s=String(s||''); const ys=(s.match(/\d{4}/g)||[]).map(Number);
+  if(/present|current/i.test(s)) return 1000000+(ys.length?ys[0]:0);
+  return ys.length?ys[ys.length-1]:0; }
+const byRecent=(a,b)=>cvYearKey(b.date)-cvYearKey(a.date);
+const sortedEntries=sec=>entriesOf(sec).slice().sort(byRecent);
+
+function editJournal(pt){
+  const span=el('span','editable ti');
+  const paint=()=>{ span.textContent=pt.journal?(JABBR[pt.journal]||pt.journal):'journal'; span.classList.toggle('empty',!pt.journal); }; paint();
+  span.onclick=()=>{ const sel=el('select','inlinesel'); ['',...JOURNALS].forEach(j=>sel.appendChild(optn(j,j||'—')));
+    if(pt.journal&&!JOURNALS.includes(pt.journal))sel.appendChild(optn(pt.journal,pt.journal)); sel.value=pt.journal||'';
+    span.replaceWith(sel); sel.focus(); let done=false; const fin=()=>{ if(done)return; done=true; pt.journal=sel.value; queueSave(); renderMain(); };
+    sel.onchange=fin; sel.onblur=fin; };
+  return span;
+}
+const CVPUB_LBL=Object.assign({},STAGE_LBL,{accepted:'In press',published:'In press'});
+function renderPubItem(p){
+  const pt=p.tracks.paper||(p.tracks.paper={status:'',items:[]}); const d=el('div','cv-pub'); const b=pubBucket(p);
+  d.appendChild(editRich(()=>pt.authors?boldMe(abbrevAuthors(pt.authors)):'', ()=>pt.authors||'', v=>{pt.authors=v;}, {ph:'[author list]'}));
+  d.appendChild(document.createTextNode(' ('));
+  d.appendChild(editText(()=>pt.year||'', v=>{pt.year=v;}, {ph:'year'}));
+  d.appendChild(document.createTextNode('). '));
+  d.appendChild(editSci(()=>pt.full_title||'', v=>{pt.full_title=v;}, {ph:p.name+' — add title', area:true}));
+  d.appendChild(document.createTextNode('. '));
+  d.appendChild(editJournal(pt));
+  d.appendChild(document.createTextNode('. '));
+  if(pt.pubinfo){ d.appendChild(editText(()=>pt.pubinfo, v=>{pt.pubinfo=v;}, {})); d.appendChild(document.createTextNode(' ')); }
+  let status=''; if(b==='pub') status = pt.pubinfo ? '' : 'In press'; else if(b==='review') status='Under review'; else if(b==='submission') status='In submission'; else if(b==='prep') status='In preparation';
+  if(status){ const st=el('span','cv-status'); st.appendChild(selValue(()=>stageOf(p),v=>{p.stage=v;},STAGE_ORDER,CVPUB_LBL)); d.appendChild(st); }
+  return d;
+}
+function collectPosters(){
+  const out=[];
+  DATA.projects.forEach(p=>(p.posters||[]).forEach(ps=>{
+    const vis=(ps.presentations||[]).filter(pr=>pr.status!=='planned');   // hide planned venues
+    if(!vis.length) return;
+    out.push({p,ps,vis});
+  }));
+  const yof=arr=>Math.max(0,...arr.map(pr=>parseInt((String(pr.date).match(/20\d\d/)||[])[0])||0));
+  const AR={'first':0,'co-first':1,'second':2,'third':3,'middle':4};
+  out.sort((a,b)=>{                                    // year desc → conference asc → author position
+    const dy=yof(b.vis)-yof(a.vis); if(dy) return dy;
+    const c=((a.vis[0]||{}).conference||'').toLowerCase().localeCompare(((b.vis[0]||{}).conference||'').toLowerCase()); if(c) return c;
+    return (AR[a.ps.authorship]??9)-(AR[b.ps.authorship]??9);
+  });
+  return out;
+}
+function renderVenueRow(p,ps,pr){
+  const row=el('div','cv-presmeta');
+  row.appendChild(selectOrOther(()=>pr.conference,v=>{pr.conference=v;},CONFS,'conference'));
+  row.appendChild(editText(()=>pr.date||'',v=>{pr.date=v;},{ph:'year'}));
+  row.appendChild(selValue(()=>pr.status,v=>{pr.status=v;},PRES_STATUS,PRES_STATUS_LBL));
+  row.appendChild(el('span','sep','·'));
+  row.appendChild(selValue(()=>ps.type||'Poster',v=>{ps.type=v;},PTYPES,null));
+  row.appendChild(selValue(()=>ps.authorship,v=>{ps.authorship=v;},AUTH,AUTH_LBL));
+  const dw=el('span','cv-distinction'); dw.appendChild(editText(()=>pr.note||'',v=>{pr.note=v;},{ph:'+ distinction'})); row.appendChild(dw);
+  const x=el('button','cv-venuex','×'); x.title='remove this venue';
+  x.onclick=()=>{ ps.presentations=(ps.presentations||[]).filter(z=>z!==pr); if(!ps.presentations.length)p.posters=(p.posters||[]).filter(z=>z!==ps); queueSave(); renderMain(); };
+  row.appendChild(x);
+  return row;
+}
+function renderPosterEntry(x){
+  const {p,ps,vis}=x; const it=el('div','cv-entry');
+  const tw=el('div','cv-t cv-prestitle'); tw.appendChild(editSci(()=>ps.note||'',v=>{ps.note=v;},{ph:p.name+' — abstract title',area:true})); it.appendChild(tw);
+  vis.forEach(pr=>it.appendChild(renderVenueRow(p,ps,pr)));
+  const av=el('button','cv-chip cv-addvenue','+ venue'); av.title='same poster at another conference — adds a row under this title';
+  av.onclick=()=>{ ps.presentations=ps.presentations||[]; ps.presentations.push({conference:'',status:'submitted',date:(vis[0]||{}).date||''}); queueSave(); renderMain(); };
+  it.appendChild(av);
+  return it;
+}
+function addPresentation(){
+  const lab=(DATA.labs.filter(l=>!CV_SECTIONS.includes(l)&&l!=='__cv__')[0])||DATA.labs[0];
+  const id='pres-'+Math.abs(hash('pres'+(_pc++))).toString(36).slice(0,6);
+  const tracks={paper:{status:'',items:[]}}; WORK.forEach(w=>tracks[w]={status:'',items:[]});
+  DATA.projects.push({id,name:'New presentation',lab,group:'',priority:0,stage:'idea',authorship:'first',dataset:'',pi:[],dirs:[],tags:[],
+    posters:[{id:id+'-p',authorship:'first',type:'Poster',note:'',presentations:[{conference:'',status:'submitted',date:'2026'}]}]});
+  queueSave(); renderMain();
+}
+const GRANT_STAGE_LBL={planning:'In preparation',applying:'Submitted',submitted:'Submitted','under review':'Under review',awarded:'Awarded',rejected:'Rejected','not eligible':'Not eligible'};
+function renderGrantRow(g){
+  const it=el('div','cv-entry');
+  const tr=el('div','cv-titlerow');
+  const t=el('span','cv-t'); t.appendChild(editText(()=>g.name||'',v=>{g.name=v;},{ph:'award / grant name'})); tr.appendChild(t);
+  const yr=el('span','cv-date'); yr.appendChild(editText(()=>g.year||((g.deadline||g.hearback||'').match(/\d{4}/)||[''])[0]||'',v=>{g.year=v;},{ph:'year'})); tr.appendChild(yr);
+  it.appendChild(tr); it.appendChild(cvDel(DATA.grants,g));
+  const arow=el('div','cv-kv'); arow.appendChild(el('span','kk','Applicant:'));
+  const av=el('span'); av.appendChild(editText(()=>g.owner!==undefined?g.owner:'',v=>{g.owner=v;},{ph:'applicant / PI'}));
+  av.appendChild(el('span','sep',' · '));
+  const stg=el('span','cv-status'); stg.appendChild(selValue(()=>g.status,v=>{g.status=v;},GRANT_STATUS,GRANT_STAGE_LBL)); av.appendChild(stg);
+  arow.appendChild(av); it.appendChild(arow);
+  fieldRows(it,g,[{key:'project',label:'Title:',para:true,ph:'project / work title',chip:'Title'},{key:'note',label:'Description:',para:true,ph:'description of the work',chip:'Description'},{key:'amount',label:'Amount:',ph:'$—',chip:'Amount'},{key:'contribution',label:'Contribution:',ph:'how I contributed',chip:'Contribution'}]);
+  return it;
+}
+
+function collectMissing(){
+  const out=[]; const prof=DATA.profile||{};
+  const need=(cond,label,target)=>{ if(cond) out.push([label,target]); };
+  need(!prof.credentials,'Add a credential line under your name','__cv__');
+  need(!prof.location,'Add your location (City, State)','__cv__');
+  need(!prof.orcid,'Add your ORCID iD','__cv__');
+  need(!prof.scholar,'Add your Google Scholar link','__cv__');
+  need(!prof.linkedin,'Add your LinkedIn link','__cv__');
+  DATA.projects.forEach(p=>{ const b=pubBucket(p); if(!b||b==='prep')return; const pt=p.tracks.paper||{};
+    need(!pt.authors,'Publication “'+p.name+'” — add author list',p.lab);
+    need(!pt.full_title,'Publication “'+p.name+'” — add full title',p.lab);
+  });
+  DATA.projects.forEach(p=>(p.posters||[]).forEach(ps=>(ps.presentations||[]).forEach(pr=>{
+    need(pr.conference&&!pr.date,'Presentation at '+pr.conference+' ('+p.name+') — add year',p.lab);
+  })));
+  DATA.grants.forEach(g=>{ if(!g.name||g.status==='rejected')return;
+    need(!g.owner,'Grant “'+g.name+'” — add PI',g.lab); });
+  return out;
+}
+function renderMissing(){
+  const items=collectMissing();
+  const box=el('div','miss');
+  if(!items.length){ box.appendChild(el('div','done','✓ CV looks complete — nothing missing.')); return box; }
+  box.appendChild(el('h4',null,'Complete your CV — '+items.length+' field'+(items.length>1?'s':'')+' to fill (click to jump)'));
+  const ul=el('ul'); const cap_=30;
+  items.slice(0,cap_).forEach(([lbl,target])=>{ const li=el('li',null,lbl);
+    li.onclick=()=>{ if(target!=='__cv__'){ activeLab=target; labView='research'; } else { activeLab='__cv__'; } render(); };
+    ul.appendChild(li); });
+  box.appendChild(ul);
+  if(items.length>cap_) box.appendChild(el('div','cv-sub','…and '+(items.length-cap_)+' more (mostly presentation years & grant details).'));
+  return box;
+}
+
+// which sections each print preset drops (titles must match cvSection() calls)
+const CV_PRESETS={
+  full:  [],
+  grant: ['Entrepreneurship','Volunteer','Leadership & Community Service'],
+};
+function applyCVPreset(name){
+  const H=cvHidden(); Object.keys(H).forEach(k=>delete H[k]);
+  (CV_PRESETS[name]||[]).forEach(s=>H[s]=true);
+  queueSave(); renderMain();
+}
+function renderCV(m){
+  const prof=DATA.profile||(DATA.profile={});
+  const bar=el('div','cvbar');
+  const mkPreset=(label,name)=>{ const b=el('button','btn'+(name==='full'?'':' ghost'),label);
+    b.title=name==='full'?'Print every section':'Drops: '+CV_PRESETS[name].join(', ');
+    b.onclick=()=>{ applyCVPreset(name); setTimeout(()=>window.print(),40); }; return b; };
+  bar.appendChild(mkPreset('🖨 Full CV','full'));
+  bar.appendChild(mkPreset('🖨 Grant CV','grant'));
+  const pr=el('button','btn ghost','⌘P — current view'); pr.title='Print exactly what you see now (respects the 👁 toggles)'; pr.onclick=()=>window.print(); bar.appendChild(pr);
+  bar.appendChild(el('span','hint','Presets pick which sections print · fine-tune with each section’s 👁 · edits live in each lab tab'));
+  m.appendChild(bar);
+  m.appendChild(renderMissing());
+
+  const cv=el('div','cv');
+  // ---- header ----
+  const hd=el('div','cv-head');
+  const nm=el('div','cv-name'); nm.appendChild(editText(()=>PROF('name')||'Your Name',v=>prof.name=v,{ph:'Your Name'})); hd.appendChild(nm);
+  const cr=el('div','cv-cred'); cr.appendChild(profField('credentials','e.g. M.D. Candidate, Perelman School of Medicine · B.A., Cornell University')); hd.appendChild(cr);
+  const joinDot=(parent,nodes)=>{ nodes.forEach((node,i)=>{ if(i)parent.appendChild(el('span',null,'·')); const sp=el('span'); sp.appendChild(node); parent.appendChild(sp); }); };
+  const bio=el('div','cv-contact'); joinDot(bio,[
+    linkField('email','Email','you@email.edu',{mailto:true,showValue:true}),
+    profField('phone','phone'),
+    profField('location','City, State'),
+  ]); hd.appendChild(bio);
+  const prof2=el('div','cv-contact cv-links'); joinDot(prof2,[
+    linkField('orcid','ORCID','https://orcid.org/0000-0000-0000-0000'),
+    linkField('scholar','Google Scholar','https://scholar.google.com/citations?user=…'),
+    linkField('linkedin','LinkedIn','https://linkedin.com/in/…'),
+  // Fellowship profile line — only shown once profile.samvid is set, so it
+  // isn't a dangling field in workspaces that don't have one.
+  ].concat(PROF('samvid')?[linkField('samvid','Samvid Scholar','https://samvidscholars.org/team/…')]:[]));
+  hd.appendChild(prof2);
+  cv.appendChild(hd);
+
+  // ---- Education (reverse-chronological) ----
+  const edu=cvSection(cv,'Education');
+  sortedEntries('Education').forEach(e=>edu.appendChild(renderEduItem(DATA.entries,e)));
+  edu.appendChild(cvAddBtn('Education',null,'+ Add education'));
+
+  // ---- Experience: Research / Volunteer / Entrepreneurship (reverse-chronological) ----
+  const eX=sortedEntries('Experience');
+  [['research','Research Experience'],['volunteer','Volunteer'],['entrepreneurship','Entrepreneurship']].forEach(([kind,lbl])=>{
+    const sec=cvSection(cv,lbl);
+    eX.filter(e=>(e.kind||'research')===kind).forEach(e=>sec.appendChild((kind==='research'?renderResItem:renderExpItem)(DATA.entries,e)));
+    sec.appendChild(cvAddBtn('Experience',kind,'+ Add'));
+  });
+
+  // ---- Honors & Awards (pure academic; funding lives under Grants) ----
+  const aw=cvSection(cv,'Honors & Awards');
+  sortedEntries('Funding / Scholarship').forEach(e=>aw.appendChild(renderHonorItem(DATA.entries,e)));
+  aw.appendChild(cvAddBtn('Funding / Scholarship',null,'+ Add honor / award'));
+
+  // ---- Grants & Funding (Applicant · award · contribution; AWARDED only on the CV) ----
+  const gr=cvSection(cv,'Grants & Funding');
+  const isLead=g=>isMeOwner(g.owner||'');
+  const gsAll=DATA.grants.filter(g=>g.name&&g.status==='awarded');
+  const lead=gsAll.filter(isLead), behalf=gsAll.filter(g=>!isLead(g));
+  if(lead.length){ gr.appendChild(el('div','cv-h3','As Lead Applicant')); lead.forEach(g=>gr.appendChild(renderGrantRow(g))); }
+  if(behalf.length){ gr.appendChild(el('div','cv-h3','As Contributor')); behalf.forEach(g=>gr.appendChild(renderGrantRow(g))); }
+  if(!gsAll.length) cvNone(gr,'Add grants in each lab’s Funding tab.');
+
+  // ---- Publications ----
+  const pubSec=cvSection(cv,'Publications');
+  pubSec.appendChild(citationBuilderBox());
+  const buckets={pub:[],review:[],submission:[],prep:[]};
+  DATA.projects.forEach(p=>{ const b=pubBucket(p); if(b)buckets[b].push(p); });
+  const pubYear=p=>{ const pt=p.tracks.paper||{}; return parseInt(pt.year) || parseInt(((pt.authors||'').match(/\((\d{4})\)/)||[])[1]) || 0; };
+  const subs=[['pub','Peer-Reviewed Publications'],['review','Manuscripts Under Review'],['submission','Manuscripts In Submission']];
+  let anyPub=false;
+  subs.forEach(([k,lbl])=>{ if(!buckets[k].length)return; anyPub=true;
+    pubSec.appendChild(el('div','cv-h3',lbl));
+    buckets[k].slice().sort((a,b)=>pubYear(b)-pubYear(a)).forEach(p=>pubSec.appendChild(renderPubItem(p))); });
+  if(!anyPub) cvNone(pubSec,'Publications are pulled from projects with a manuscript stage (Manuscript Preparation → Accepted).');
+
+  // ---- Abstracts & Presentations ----
+  const preSec=cvSection(cv,'Abstracts & Presentations');
+  collectPosters().forEach(x=>preSec.appendChild(renderPosterEntry(x)));
+  const pab=el('button','cv-add','+ Add presentation'); pab.onclick=addPresentation; preSec.appendChild(pab);
+
+  // ---- Professional Service — Peer Review ----
+  const svc=cvSection(cv,'Professional Service — Peer Review');
+  sortedEntries('Peer Review Activity').forEach(e=>svc.appendChild(renderPeerItem(DATA.entries,e)));
+  svc.appendChild(cvAddBtn('Peer Review Activity',null,'+ Add peer review'));
+
+  // ---- Leadership & Community Service ----
+  const ls=cvSection(cv,'Leadership & Community Service');
+  sortedEntries('Activities').forEach(e=>ls.appendChild(renderExpItem(DATA.entries,e)));
+  ls.appendChild(cvAddBtn('Activities',null,'+ Add'));
+
+  m.appendChild(cv);
+  wireCitationBuilder();
+}
+
+/* paste */
+function wirePaste(){ const sel=$('#pasteProject'); sel.innerHTML='';
+  DATA.labs.forEach(lab=>{const ps=projectsIn(lab).filter(isActive); if(!ps.length)return;
+    const og=el('optgroup'); og.label=lab; ps.forEach(p=>og.appendChild(optn(p.id,p.name))); sel.appendChild(og);});
+  const pt=$('#pasteTrack'); pt.innerHTML=''; ['paper',...WORK].forEach(t=>pt.appendChild(optn(t,cap(t))));
+  $('#suggestBtn').onclick=suggest; $('#addTaskBtn').onclick=addTask;
+  $('#pasteText').addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')suggest();}); }
+function scoreProject(text,p){ const toks=text.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>2);
+  const hay=(p.name+' '+(p.pi||[]).join(' ')+' '+(p.tags||[]).join(' ')+' '+p.id.replace(/-/g,' ')).toLowerCase();
+  let sc=0; toks.forEach(t=>{if(hay.includes(t))sc+=p.name.toLowerCase().includes(t)?2:1;});
+  p.name.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>3).forEach(nt=>{if(text.toLowerCase().includes(nt))sc+=3;}); return sc;}
+function scoreTrack(text){const low=' '+text.toLowerCase()+' '; let best='paper',bs=-1;
+  for(const t in TK){let sc=0;TK[t].forEach(k=>{if(low.includes(k))sc+=k.length>4?2:1;}); if(sc>bs){bs=sc;best=t;}} return best;}
+function suggest(){ const t=$('#pasteText').value.trim(); if(!t){$('#pasteWhy').textContent='(type first)';return;}
+  const first=t.split('\n')[0]; let best=null,bs=-1; DATA.projects.filter(isActive).forEach(p=>{const s=scoreProject(first,p);if(s>bs){bs=s;best=p;}});
+  let tk=scoreTrack(first); if(tk==='paper'&&!['paper',...WORK].includes(tk))tk='paper'; if(best&&bs>0&&best.lab!==activeLab){activeLab=best.lab;}
+  renderMain(); const dt=$('.paste'); if(dt)dt.open=true; $('#pasteText').value=t;
+  if(best&&bs>0)$('#pasteProject').value=best.id; $('#pasteTrack').value=WORK.includes(tk)||tk==='paper'?tk:'paper';
+  $('#pasteWhy').textContent=best&&bs>0?`→ ${best.name} · ${tk}`:`no strong match — pick; track: ${tk}`; }
+function addTask(){ const t=$('#pasteText').value.trim(); if(!t)return; const p=DATA.projects.find(x=>x.id===$('#pasteProject').value); if(!p)return;
+  const tn=$('#pasteTrack').value; const tr=p.tracks[tn]||(p.tracks[tn]={status:'',items:[]});
+  t.split('\n').map(l=>l.trim()).filter(Boolean).forEach(l=>addItem(tr,l)); activeLab=p.lab; expanded.add(p.id); queueSave(); render(); }
+
+/* paste a paper / submission → match existing project or create new */
+function parsePaper(text){
+  const t=text.replace(/\s+/g,' ').trim();
+  let journal='';
+  for(const j of JOURNALS){ if(new RegExp('\\b'+j.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')+'\\b','i').test(t)){journal=j;break;} }
+  if(!journal){ for(const k in JABBR){ if(new RegExp('(^|[^A-Za-z])'+JABBR[k].replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')+'([^A-Za-z]|$)','i').test(t)){journal=k;break;} } }
+  let stage='manuscript-prep';
+  if(/in press|accepted|published/i.test(t)) stage='accepted';
+  else if(/under review|in review/i.test(t)) stage='in-review';
+  else if(/in submission|submitted|resubmitted/i.test(t)) stage='in-submission';
+  else if(/in prep|preparation/i.test(t)) stage='manuscript-prep';
+  // title = the ". "-delimited segment with the most real words (fewest initials)
+  const segs=t.split(/\.\s+/).map(s=>s.trim()).filter(Boolean);
+  let title='', best=-1;
+  segs.forEach(s=>{ const initials=(s.match(/\b[A-Z]\.?[A-Z]?\.?\b/g)||[]).length; const words=s.split(/\s+/).length;
+    const score=words-initials*2+(s.length>45?4:0);
+    if(words>=4 && score>best){ best=score; title=s; } });
+  if(!title) title=(segs[0]||t).slice(0,90);
+  title=title.replace(/^[\s,.;]+|[\s,.;]+$/g,'');
+  let authors='';
+  const ti=t.indexOf(title);
+  if(ti>0){ authors=t.slice(0,ti).replace(/[\s.,;]+$/,'').trim(); }
+  return {title,authors,journal,stage};
+}
+function scorePaperMatch(parsed,p){
+  const pt=p.tracks.paper||{};
+  const hay=(p.name+' '+(pt.full_title||'')+' '+(pt.authors||'')+' '+(p.tags||[]).join(' ')).toLowerCase();
+  const toks=[...new Set((parsed.title||'').toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>3))];
+  let sc=0; toks.forEach(t=>{ if(hay.includes(t)) sc+=1; });
+  if(parsed.journal && pt.journal===parsed.journal) sc+=2;
+  return sc;
+}
+function wirePaperPaste(){
+  const ta=$('#paperText'), why=$('#paperWhy'), sel=$('#paperTarget'), fb=$('#paperFields');
+  const mkField=(id,label,val,wide)=>{ const w=el('label','ppf'); w.appendChild(el('span','ppl',label));
+    const i=el('input','tdinput'); i.id=id; i.value=val||''; if(wide)i.style.minWidth='320px'; w.appendChild(i); return w; };
+  $('#paperMatch').onclick=()=>{
+    const txt=ta.value.trim(); if(!txt){ why.textContent='(paste something first)'; return; }
+    const parsed=parsePaper(txt);
+    fb.style.display='flex'; fb.innerHTML='';
+    fb.appendChild(mkField('ppTitle','Title',parsed.title,true));
+    fb.appendChild(mkField('ppAuthors','Authors',parsed.authors,true));
+    const jw=el('label','ppf'); jw.appendChild(el('span','ppl','Journal'));
+    const js=el('select','tdinput'); js.id='ppJournal'; js.appendChild(optn('','—'));
+    JOURNALS.forEach(j=>js.appendChild(optn(j,j))); if(parsed.journal&&!JOURNALS.includes(parsed.journal))js.appendChild(optn(parsed.journal,parsed.journal));
+    js.value=parsed.journal||''; jw.appendChild(js); fb.appendChild(jw);
+    const sw=el('label','ppf'); sw.appendChild(el('span','ppl','Stage'));
+    const ss=el('select','tdinput'); ss.id='ppStage'; STAGE_ORDER.forEach(s=>ss.appendChild(optn(s,STAGE_LBL[s]))); ss.value=parsed.stage; sw.appendChild(ss); fb.appendChild(sw);
+    // build match dropdown
+    sel.innerHTML=''; sel.appendChild(optn('__new__','＋ Create new project'));
+    const ranked=projectsIn(activeLab).map(p=>({p,s:scorePaperMatch(parsed,p)})).sort((a,b)=>b.s-a.s);
+    ranked.forEach(({p,s})=>sel.appendChild(optn(p.id,(s>0?'('+s+') ':'')+p.name)));
+    const top=ranked[0];
+    if(top && top.s>=3){ sel.value=top.p.id; why.textContent='best match: '+top.p.name+' — review fields, then Add / Update'; }
+    else { sel.value='__new__'; why.textContent='no strong match — will create a new project'; }
+  };
+  $('#paperApply').onclick=()=>{
+    if(!$('#ppTitle')){ $('#paperMatch').onclick(); return; }
+    const title=$('#ppTitle').value.trim(), authors=$('#ppAuthors').value.trim(),
+          journal=$('#ppJournal').value, stage=$('#ppStage').value;
+    if(!title){ why.textContent='need a title'; return; }
+    const tgt=sel.value;
+    if(tgt==='__new__'){
+      const id=slug(title)+'-'+Math.abs(hash(title+(_pc++))).toString(36).slice(0,4);
+      const tracks={paper:{status:'',items:[],journal,full_title:title,authors,pubinfo:''}}; WORK.forEach(w=>tracks[w]={status:'',items:[]});
+      DATA.projects.push({id,name:title.slice(0,60),lab:activeLab,group:'',priority:0,stage,authorship:'',dataset:'',pi:[],dirs:[],tags:[],posters:[],tracks});
+      expanded.add(id); why.textContent='✓ created new project "'+title.slice(0,40)+'"';
+    } else {
+      const p=DATA.projects.find(x=>x.id===tgt); if(!p){ why.textContent='pick a target'; return; }
+      const pt=p.tracks.paper||(p.tracks.paper={status:'',items:[]});
+      if(title)pt.full_title=title; if(authors)pt.authors=authors; if(journal)pt.journal=journal; if(stage)p.stage=stage;
+      expanded.add(p.id); why.textContent='✓ updated "'+p.name+'"';
+    }
+    ta.value=''; fb.style.display='none'; fb.innerHTML=''; queueSave(); render();
+  };
+}
+
+/* new project */
+function openNewProj(){ $('#npName').value=''; $('#npPI').value=''; const nl=$('#npLab'); nl.innerHTML='';
+  DATA.labs.forEach(l=>nl.appendChild(optn(l,l))); nl.value=activeLab; fillNpG(); nl.onchange=fillNpG; $('#newProjDlg').showModal(); }
+function fillNpG(){ const g=$('#npGroup'); g.innerHTML=''; g.appendChild(optn('','— no group —'));
+  DATA.groups.filter(x=>x.lab===$('#npLab').value).forEach(gr=>g.appendChild(optn(gr.id,gr.name))); }
+$('#newProjDlg').addEventListener('close',()=>{ if($('#newProjDlg').returnValue!=='ok')return;
+  const name=$('#npName').value.trim(); if(!name)return; const id=slug(name)+'-'+Math.abs(hash(name+(_pc++))).toString(36).slice(0,4);
+  const tracks={paper:{status:'',items:[],journal:''}}; WORK.forEach(t=>tracks[t]={status:'',items:[]});
+  DATA.projects.push({id,name,lab:$('#npLab').value,group:$('#npGroup').value,priority:0,stage:'idea',authorship:'',dataset:'',
+    pi:$('#npPI').value.trim()?[$('#npPI').value.trim()]:[],dirs:[],tags:[],posters:[],tracks});
+  activeLab=$('#npLab').value; expanded.add(id); queueSave(); render(); });
+
+/* ---------- ✨ Update Assistant (Claude-powered) ---------- */
+function renderAssistant(m){
+  const h=el('div','lhead'); h.innerHTML='<h1>✨ Update Assistant</h1><div class="stats"><span>Connect Gmail for automatic updates, or paste anything. Claude routes it to the right project and proposes changes for your approval.</span></div>'; m.appendChild(h);
+  const keyBox=el('div','asst-key'); m.appendChild(keyBox);
+  const emailBox=el('div','asst-key'); m.appendChild(emailBox); renderEmailSetup(emailBox);
+  const slackBox=el('div','asst-key'); m.appendChild(slackBox); renderSlackSetup(slackBox);
+  const pendingBox=el('div','asst-results'); m.appendChild(pendingBox); renderPending(pendingBox);
+  m.appendChild(el('div','asst-divider','— or paste an update manually —'));
+  const ta=el('textarea','tdarea'); ta.placeholder='Paste an email, Slack thread, or note about any project…'; ta.style.minHeight='120px'; m.appendChild(ta);
+  const bar=el('div','prow'); bar.style.margin='8px 0'; const analyze=el('button','btn','Analyze →'); const why=el('span','hint'); bar.appendChild(analyze); bar.appendChild(why); m.appendChild(bar);
+  const results=el('div','asst-results'); m.appendChild(results);
+  fetch('/api/config').then(r=>r.json()).then(cfg=>{
+    if(!cfg.hasKey){ renderKeySetup(keyBox); analyze.disabled=true; }
+    else { keyBox.innerHTML=''; const line=el('div','hint','✓ Claude API key set ('+cfg.model+') · '); const a=el('a',null,'change'); a.href='#'; a.onclick=e=>{e.preventDefault(); renderKeySetup(keyBox); analyze.disabled=true;}; line.appendChild(a); keyBox.appendChild(line); }
+  }).catch(()=>{ keyBox.innerHTML='<div class="hint">could not reach server</div>'; });
+  analyze.onclick=async()=>{
+    const update=ta.value.trim(); if(!update){ why.textContent='(paste something first)'; return; }
+    why.textContent='thinking…'; results.innerHTML=''; analyze.disabled=true;
+    try{
+      const r=await fetch('/api/llm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({update})});
+      const j=await r.json();
+      if(j.error){ why.textContent = j.error==='no_key'?'Set your API key first ↑':('error: '+j.error); return; }
+      why.textContent=''; renderSuggestions(results, j.matches||[]);
+    }catch(e){ why.textContent='error: '+e.message; }
+    finally{ analyze.disabled=false; }
+  };
+}
+function renderEmailSetup(box){
+  box.innerHTML='<div class="hint">loading email settings…</div>';
+  fetch('/api/config').then(r=>r.json()).then(cfg=>{
+    box.innerHTML=''; const det=el('details','paste'); det.open=!cfg.hasEmail&&cfg.hasKey?false:false;
+    const sum=el('summary'); sum.textContent=cfg.hasEmail?('📧 Email connected — '+cfg.gmail_address+(cfg.email_poll?' · auto-checking every 10 min':' · auto-check OFF')):'📧 Connect email (IMAP) — auto-generate updates from new mail';
+    det.appendChild(sum); const body=el('div','body'); det.appendChild(body);
+    const row=(l,c)=>{const r=el('div','kvrow');r.appendChild(el('span','k',l));const v=el('span','v');v.appendChild(c);r.appendChild(v);return r;};
+    const addr=el('input','tdinput'); addr.value=cfg.gmail_address||''; addr.placeholder='you@gmail.com'; addr.oninput=()=>{server.placeholder=(/@/.test(addr.value)?'':'')+(cfg.imap_guess||'imap.gmail.com');};
+    const pw=el('input','tdinput'); pw.type='password'; pw.placeholder=cfg.hasEmail?'•••• (set — blank keeps it)':'app password';
+    const server=el('input','tdinput'); server.value=cfg.imap_server||''; server.placeholder=(cfg.imap_guess||'imap.gmail.com')+' (auto)';
+    const senders=el('input','tdinput'); senders.value=(cfg.email_senders||[]).join(', '); senders.placeholder='optional: only these senders (comma-sep); blank = all';
+    const poll=el('input'); poll.type='checkbox'; poll.checked=!!cfg.email_poll;
+    body.appendChild(row('Email', addr)); body.appendChild(row('App password', pw)); body.appendChild(row('IMAP server', server)); body.appendChild(row('Senders', senders));
+    const pl=el('label','tdflag'); pl.appendChild(poll); pl.appendChild(el('span',null,'Auto-check inbox every 10 min')); body.appendChild(row('Auto', pl));
+    body.appendChild(el('div','hint','Gmail/Google-Workspace works with an app password (Google Account → Security → 2-Step Verification → App passwords). ⚠️ Outlook/Microsoft 365 & most university accounts (incl. @pennmedicine.upenn.edu) block basic-auth IMAP — use a Gmail/Google account or forward mail there. IMAP server auto-detects from the domain; override above if needed. Email bodies are sent to the Claude API.'));
+    const abar=el('div','prow'); abar.style.marginTop='6px';
+    const save=el('button','btn sm','Save'); const why=el('span','hint');
+    save.onclick=async()=>{ save.textContent='saving…';
+      const payload={gmail_address:addr.value.trim(), imap_server:server.value.trim(), email_senders:senders.value, email_poll:poll.checked};
+      if(pw.value.trim())payload.gmail_app_password=pw.value.trim();
+      try{ await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); renderEmailSetup(box); }
+      catch(e){ save.textContent='Save'; } };
+    const check=el('button','btn sm ghost','Check now');
+    check.onclick=async()=>{ check.textContent='checking…';
+      try{ const r=await fetch('/api/email/check',{method:'POST'}); const j=await r.json();
+        why.textContent=j.error?('✕ '+j.error):('✓ '+j.added+' new suggestion'+(j.added===1?'':'s')); render(); }
+      catch(e){ why.textContent='error'; } finally{ check.textContent='Check now'; } };
+    abar.appendChild(save); abar.appendChild(check); abar.appendChild(why); body.appendChild(abar);
+    box.appendChild(det);
+  }).catch(()=>{ box.innerHTML='<div class="hint">could not load email settings</div>'; });
+}
+function renderSlackSetup(box){
+  box.innerHTML='<div class="hint">loading Slack settings…</div>';
+  fetch('/api/config').then(r=>r.json()).then(cfg=>{
+    box.innerHTML=''; const det=el('details','paste');
+    const sum=el('summary'); sum.textContent=cfg.hasSlack?('💬 Slack connected'+(cfg.slack_poll?' · auto-checking every 10 min':' · auto-check OFF')):'💬 Connect Slack — auto-generate updates from messages';
+    det.appendChild(sum); const body=el('div','body'); det.appendChild(body);
+    const row=(l,c)=>{const r=el('div','kvrow');r.appendChild(el('span','k',l));const v=el('span','v');v.appendChild(c);r.appendChild(v);return r;};
+    const tok=el('input','tdinput'); tok.type='password'; tok.placeholder=cfg.hasSlack?'•••• (set — blank keeps it)':'xoxp-… user token';
+    const chans=el('input','tdinput'); chans.value=(cfg.slack_channels||[]).join(', '); chans.placeholder='optional: channels to watch (comma-sep); blank = DMs + all';
+    const poll=el('input'); poll.type='checkbox'; poll.checked=!!cfg.slack_poll;
+    body.appendChild(row('User token', tok)); body.appendChild(row('Channels', chans));
+    const pl=el('label','tdflag'); pl.appendChild(poll); pl.appendChild(el('span',null,'Auto-check every 10 min')); body.appendChild(row('Auto', pl));
+    body.appendChild(el('div','hint','Create a Slack app at api.slack.com/apps → OAuth & Permissions → add User Token Scopes (channels:history, groups:history, im:history, mpim:history, channels:read, im:read, users:read) → Install to workspace → copy the User OAuth Token (xoxp-…). Stored locally server-side; message text is sent to the Claude API.'));
+    const abar=el('div','prow'); abar.style.marginTop='6px';
+    const save=el('button','btn sm','Save'); const why=el('span','hint');
+    save.onclick=async()=>{ save.textContent='saving…';
+      const payload={slack_channels:chans.value, slack_poll:poll.checked};
+      if(tok.value.trim())payload.slack_token=tok.value.trim();
+      try{ await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); renderSlackSetup(box); }
+      catch(e){ save.textContent='Save'; } };
+    const check=el('button','btn sm ghost','Check now');
+    check.onclick=async()=>{ check.textContent='checking…';
+      try{ const r=await fetch('/api/slack/check',{method:'POST'}); const j=await r.json();
+        why.textContent=j.error?('✕ '+j.error):('✓ '+j.added+' new suggestion'+(j.added===1?'':'s')); render(); }
+      catch(e){ why.textContent='error'; } finally{ check.textContent='Check now'; } };
+    abar.appendChild(save); abar.appendChild(check); abar.appendChild(why); body.appendChild(abar);
+    box.appendChild(det);
+  }).catch(()=>{ box.innerHTML='<div class="hint">could not load Slack settings</div>'; });
+}
+function changeLabel(ch){
+  return ch.type==='update_stage'?('Set stage → '+(STAGE_LBL[ch.stage]||ch.stage))
+       : ch.type==='flag'?('⚑ Follow-up: '+(ch.text||''))
+       : ch.type==='add_note'?('Note: '+(ch.text||''))
+       : ('+ '+(ch.track||'task')+' · '+(ch.text||''));
+}
+function renderPending(box){
+  box.innerHTML='<div class="hint">loading pending…</div>';
+  fetch('/api/pending').then(r=>r.json()).then(items=>{
+    box.innerHTML='';
+    if(!items.length){ return; }
+    box.appendChild(el('div','asst-cardtitle','📥 Pending ('+items.length+')'));
+    items.forEach(item=>{
+      const card=el('div','asst-card');
+      card.appendChild(el('div','asst-cardtitle',(item.source==='slack'?'💬 ':'✉️ ')+(item.subject||'(no subject)')));
+      card.appendChild(el('div','hint','from '+(item.from||'')+(item.date?' · '+item.date:'')));
+      const chs=[];
+      (item.matches||[]).forEach(mt=>{
+        card.appendChild(el('div','asst-match',(mt.project_id==='NEW'?'＋ New project — ':'→ ')+(mt.project_name||mt.project_id)+' ('+(mt.confidence||'')+')'));
+        if(mt.summary)card.appendChild(el('div','hint',mt.summary));
+        (mt.changes||[]).forEach(ch=>{ const r=el('label','asst-change'); const cb=el('input');cb.type='checkbox';cb.checked=true;r.appendChild(cb);
+          r.appendChild(el('span',null,changeLabel(ch))); card.appendChild(r); chs.push({cb,ch,mt}); });
+      });
+      const bar=el('div','prow'); bar.style.marginTop='6px';
+      const ap=el('button','btn sm','Approve'); ap.onclick=async()=>{ ap.disabled=true;
+        const byMt=new Map(); chs.filter(x=>x.cb.checked).forEach(x=>{ if(!byMt.has(x.mt))byMt.set(x.mt,[]); byMt.get(x.mt).push(x.ch); });
+        byMt.forEach((cc,mt)=>applyLLM(mt,cc));
+        await fetch('/api/pending/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:item.id})});
+        renderSide(); renderPending(box); };
+      const dm=el('button','btn sm ghost','Dismiss'); dm.onclick=async()=>{
+        await fetch('/api/pending/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:item.id})}); renderSide(); renderPending(box); };
+      bar.appendChild(ap); bar.appendChild(dm); card.appendChild(bar); box.appendChild(card);
+    });
+  }).catch(()=>{ box.innerHTML=''; });
+}
+function renderKeySetup(box){
+  box.innerHTML='';
+  box.appendChild(el('div','hint','Enter your Anthropic API key — stored locally in data/config.json (server-side, chmod 600); it is never kept in the browser after this.'));
+  const inp=el('input','tdinput'); inp.type='password'; inp.placeholder='sk-ant-…'; inp.style.minWidth='300px';
+  const save=el('button','btn sm','Save key');
+  save.onclick=async()=>{ if(!inp.value.trim())return; save.textContent='saving…';
+    try{ const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({anthropic_api_key:inp.value.trim()})});
+      const j=await r.json(); if(j.hasKey){ renderMain(); } else { save.textContent='Save key'; } }
+    catch(e){ save.textContent='Save key'; } };
+  const row=el('div','prow'); row.style.marginTop='6px'; row.appendChild(inp); row.appendChild(save); box.appendChild(row);
+}
+function renderSuggestions(container, matches){
+  container.innerHTML='';
+  if(!matches.length){ container.appendChild(el('div','cv-none','No changes suggested for this update.')); return; }
+  matches.forEach(mt=>{
+    const card=el('div','asst-card'); const isNew=mt.project_id==='NEW';
+    const t=el('div','asst-cardtitle'); t.textContent=(isNew?'＋ New project — ':'')+(mt.project_name||mt.project_id);
+    const conf=el('span','asst-conf',' '+(mt.confidence||'')+' confidence'); t.appendChild(conf); card.appendChild(t);
+    if(mt.summary) card.appendChild(el('div','hint',mt.summary));
+    const chs=[];
+    (mt.changes||[]).forEach(ch=>{
+      const row=el('label','asst-change'); const cb=el('input'); cb.type='checkbox'; cb.checked=true; row.appendChild(cb);
+      row.appendChild(el('span',null,changeLabel(ch))); card.appendChild(row); chs.push({cb,ch});
+    });
+    const ab=el('button','btn sm','Apply approved');
+    ab.onclick=()=>{ applyLLM(mt, chs.filter(x=>x.cb.checked).map(x=>x.ch)); ab.textContent='✓ applied to '+(mt.project_name||'project'); ab.disabled=true; };
+    card.appendChild(ab); container.appendChild(card);
+  });
+}
+function applyLLM(mt, changes){
+  const realLabs=DATA.labs.filter(l=>!CV_SECTIONS.includes(l)&&l!=='__cv__'&&l!=='__assistant__');
+  let p = mt.project_id==='NEW' ? null : DATA.projects.find(x=>x.id===mt.project_id);
+  if(!p){ const name=mt.project_name||'New project'; const lab=realLabs.includes(mt.lab)?mt.lab:realLabs[0];
+    const id=slug(name)+'-'+Math.abs(hash(name+(_pc++))).toString(36).slice(0,4);
+    const tracks={paper:{status:'',items:[]}}; WORK.forEach(w=>tracks[w]={status:'',items:[]});
+    p={id,name,lab,group:'',priority:0,stage:'idea',authorship:'',dataset:'',pi:[],dirs:[],tags:[],posters:[],tracks};
+    DATA.projects.push(p); expanded.add(id);
+  }
+  changes.forEach(ch=>{
+    if(ch.type==='update_stage'&&ch.stage&&STAGE_ORDER.includes(ch.stage)){ p.stage=ch.stage; return; }
+    const tr=(ch.track&&['paper',...WORK].includes(ch.track))?ch.track:'analysis';
+    p.tracks[tr]=p.tracks[tr]||{status:'',items:[]};
+    addItem(p.tracks[tr], (ch.type==='flag'?'⚑ ':'')+(ch.text||''));
+    if(ch.type==='flag'){ const its=p.tracks[tr].items; its[its.length-1].hp=true; its[its.length-1].priority='high'; }
+  });
+  activeLab=p.lab; queueSave();
+}
+
+/* save + utils */
+function queueSave(){ const b=$('#savebadge'); if(b){b.className='savebadge dirty'; b.textContent='unsaved…';} clearTimeout(saveTimer); saveTimer=setTimeout(save,600); }
+async function save(){ const b=$('#savebadge');
+  try{ const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json','X-Base-Mtime':dataMtime||''},body:JSON.stringify(DATA)});
+    if(r.status===409){ if(b){b.className='savebadge err'; b.textContent='newer data — reloaded';} await reloadFresh(); return; }
+    const j=await r.json();
+    if(j.ok){DATA.updated=j.updated; dataMtime=j.mtime; if(b){b.className='savebadge ok'; b.textContent='saved '+j.updated;}} else throw new Error(j.error); }
+  catch(e){ if(b){b.className='savebadge err'; b.textContent='save error';} console.error(e); } }
+function slug(s){return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);}
+function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return h;}
+let _pc=0; function today(){return DATA&&DATA.updated?String(DATA.updated).slice(0,10):'';}
+</script>
+</body>
+</html>

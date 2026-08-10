@@ -1,0 +1,31 @@
+# Deny-by-default. This working copy sits on top of real, private research data
+# (specimen records, lab notes, credentials in data/config.json). Nothing is
+# tracked unless it is explicitly un-ignored below, so a stray `git add -A`
+# cannot publish it.
+*
+
+# --- application code + docs (the only things that go to GitHub) ---
+!.gitignore
+!README.md
+!SETUP.md
+!CLAUDE.md
+!install.sh
+!start.sh
+!serve.py
+
+!app/
+!app/index.html
+
+!seed/
+!seed/projects.json
+
+!tools/
+!tools/report.py
+
+# --- never tracked, restated for anyone reading this file ---
+# data/            live workspace, backups, and data/config.json (API key,
+#                  email app password) — all local only
+# legacy/          the pre-app markdown project files
+# reports/         generated weekly reports, built from real data
+# triage/          email triage scratch
+# *.eml            saved lab email
