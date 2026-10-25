@@ -8,7 +8,8 @@ Built for a medical trainee's arc: student → resident → attending. Projects 
 through stages, and the ones that reach the right stage surface on the CV in the
 right section on their own.
 
-**New here? Read [SETUP.md](SETUP.md).** One command, no dependencies.
+**New here? Read [SETUP.md](SETUP.md).** One command, no dependencies. It adds a Dock icon, and you
+load your résumé by copy-pasting with any chat AI (ChatGPT, Claude, …) — no account or API key needed.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Jonah-Keller/ResearchOps/main/install.sh | bash
@@ -33,8 +34,11 @@ serve.py             local server:  /  ·  /api/data  ·  /api/save  ·  /report
 app/index.html       the whole client
 seed/projects.json   empty workspace, copied on first run
 tools/report.py      weekly per-lab HTML report
-start.sh             first-run setup + launch
-install.sh           one-command install for a new machine
+start.sh             first-run setup + launch (foreground)
+launch.sh            what the Dock icon runs: reuse or start the server, open the browser
+install.sh           one-command install for a new machine (also builds the Dock icon)
+tools/make_app.sh    builds ~/Applications/ResearchOps.app and pins it to the Dock
+assets/AppIcon.icns  the Dock icon
 CLAUDE.md            data model + house rules, for Claude Code sessions
 data/                your workspace and its backups — local only, gitignored
 ```

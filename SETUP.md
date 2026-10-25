@@ -1,61 +1,66 @@
 # Setup — start here
 
-You need a Mac. Nothing else to install.
+You need a Mac. It takes about five minutes, and nothing you enter ever leaves your computer.
 
-## 1. Install and open it
+## 1. Install it (once)
 
-Open **Terminal** (⌘-Space, type "Terminal", Enter), paste this line, press Enter:
+1. Open **Terminal**: press ⌘-Space, type `Terminal`, press Enter.
+2. Copy this line, paste it into Terminal, and press Enter:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Jonah-Keller/ResearchOps/main/install.sh | bash
-```
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/Jonah-Keller/ResearchOps/main/install.sh | bash
+   ```
 
-That downloads the app to `~/ResearchOps`, creates an empty workspace for you, and
-opens it in your browser at `http://127.0.0.1:8765`.
+3. **If a window pops up asking to install "command line developer tools"**, click
+   **Install** and wait for it to finish (5–15 minutes). Then paste the same line
+   into Terminal again. This only happens on Macs that have never had it.
 
-**Leave the Terminal window open** while you're using it — that window *is* the
-server. Closing it closes the app. Nothing you do goes over the internet; the
-whole thing runs on your own machine and your data never leaves it.
+ResearchOps opens in your browser, and a blue **RO** icon appears in your Dock.
+You can close Terminal now.
 
-## 2. Open it again later
+## 2. Open it any time
 
-```bash
-cd ~/ResearchOps && ./start.sh
-```
+Click the **RO** icon in your Dock. That's it.
 
-## 3. Fill in your name first
+## 3. Put your résumé in
 
-Click **📄 Curriculum Vitae** in the left sidebar and fill in the header — name,
-credentials, email, location. Do this before anything else: the CV bolds your
-name automatically in author lists, and it needs to know what your name is.
+The first time you open it, you land on **📥 Import résumé**. You can use any
+chat AI you already have — ChatGPT, Claude or Gemini, free plans included:
 
-## What the sidebar is
+1. Click **📋 Copy instructions**.
+2. Open ChatGPT or Claude in another tab. Paste, then paste your résumé (or just
+   type out everything you've done) right after it, and send.
+3. Copy the chat's whole answer, paste it into box 2 in ResearchOps, and click
+   **Preview**.
+4. Check the list, then click **✓ Add these to my CV**.
 
-| Item | What goes there |
-|---|---|
-| **📄 Curriculum Vitae** | The live CV. Everything else feeds into this view. Click any text to edit it in place. |
-| **✨ Update Assistant** | Optional. Paste a plain-English update and have it filed for you. Needs an API key (Settings). |
-| **⏰ My tasks** | Everything with a due date, across all projects. |
-| **Labs** | One board per lab or research group you work with. Projects live here. |
-| **CV Sections** | Education · Experience · Leadership & Service · Honors & Awards · Peer Review. Straight data entry — these are the parts of a CV that aren't projects. |
+You can do this again whenever you like. It only adds things that aren't
+already there, and never changes what you have.
 
-Publications, posters, and presentations are **not** entered directly on the CV.
-They come from projects: add a project under a lab, and its paper/poster tracks
-show up in the right CV section automatically as you move it along
-(idea → analysis → in submission → in review → accepted).
+## 4. Fix anything by clicking it
+
+Click **📄 Curriculum Vitae** in the sidebar. Every piece of text on the CV is
+editable: click it, type, and it saves by itself. To print or save a PDF, use
+**🖨 Full CV** at the top.
+
+Papers and posters live under the lab in the sidebar ("My Research" to start).
+When you move a paper along (in preparation → submitted → under review →
+accepted), it moves to the right heading on the CV by itself.
 
 ## Your data
 
-Everything lives in one file: `~/ResearchOps/data/projects.json`. It saves
-automatically as you type. Timestamped backups pile up in `data/backups/`
-before every bulk change.
+Everything is in one file on your Mac: `~/ResearchOps/data/projects.json`. It's
+never uploaded, and backups are kept in `~/ResearchOps/data/backups/`.
 
-That file is **never** uploaded anywhere and is excluded from the GitHub repo.
+## Getting updates
 
-## Getting the code updates
+Paste the install line from step 1 into Terminal again. It updates the app and
+leaves your data alone.
 
-```bash
-cd ~/ResearchOps && git pull
-```
+## If something goes wrong
 
-Your data is untouched by an update — only the app code changes.
+- **The page won't load:** click the Dock icon again. If that doesn't help, restart
+  the Mac and click it once more.
+- **The import says it can't read the answer:** ask the chat to "reply with only
+  the JSON code block", then paste again.
+- The app's log is at `~/Library/Logs/ResearchOps.log`, if someone helping you asks.

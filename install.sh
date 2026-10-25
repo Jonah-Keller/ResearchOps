@@ -3,8 +3,8 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/Jonah-Keller/ResearchOps/main/install.sh | bash
 #
-# Clones the repo to ~/ResearchOps, creates a fresh empty workspace, starts the
-# local server, and opens it in your browser. Safe to re-run: if the folder is
+# Clones the repo to ~/ResearchOps, creates a fresh empty workspace, adds a
+# ResearchOps icon to the Dock, starts the local server, and opens it in your browser. Safe to re-run: if the folder is
 # already there it just pulls the latest code and starts up. Your data is never
 # touched by an update.
 set -euo pipefail
@@ -12,9 +12,13 @@ set -euo pipefail
 REPO="https://github.com/Jonah-Keller/ResearchOps.git"
 DEST="${RESEARCHOPS_DIR:-$HOME/ResearchOps}"
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "git not found. Install Apple's command line tools first:"
-  echo "  xcode-select --install"
+# git and python3 come with Apple's free command line tools. If they're missing,
+# start Apple's installer and ask the person to run this line again afterwards.
+if ! xcode-select -p >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
+  echo "One-time setup: macOS needs Apple's free developer tools."
+  echo "A window will pop up — click Install, wait for it to finish (5–15 minutes),"
+  echo "then paste the same install line into Terminal again."
+  xcode-select --install 2>/dev/null || true
   exit 1
 fi
 
@@ -26,9 +30,11 @@ else
   git clone --depth 1 "$REPO" "$DEST"
 fi
 
-chmod +x "$DEST/start.sh"
+chmod +x "$DEST/start.sh" "$DEST/launch.sh" "$DEST/tools/make_app.sh"
+mkdir -p "$DEST/data"
+[ -f "$DEST/data/projects.json" ] || cp "$DEST/seed/projects.json" "$DEST/data/projects.json"
+"$DEST/tools/make_app.sh"
+"$DEST/launch.sh"
 echo
-echo "Done. Starting ResearchOps — leave this window open while you use it."
-echo "To start it again later:  cd $DEST && ./start.sh"
-echo
-exec "$DEST/start.sh"
+echo "Done. ResearchOps is opening in your browser."
+echo "You can close this window. From now on, just click the ResearchOps icon in your Dock."

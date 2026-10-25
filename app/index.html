@@ -45,6 +45,9 @@
   .prow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px}
   .hint{color:var(--faint);font-size:12px}
+  .imp-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;max-width:820px}
+  .imp-card textarea{display:block;width:100%;box-sizing:border-box;margin-top:10px;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:12px ui-monospace,Menlo,monospace;resize:vertical}
+  .imp-out{margin-top:10px} .imp-out details{margin:4px 0} .imp-out .btn{margin-top:8px} .imp-err{color:var(--red)}
   .ppf{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--faint)}
   .ppl{font-weight:600;text-transform:uppercase;letter-spacing:.04em}
   .asst-key{margin-bottom:8px}
@@ -426,6 +429,7 @@
   .cv-add{margin:6px 0 2px;font-size:12px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:3px 11px;cursor:pointer}
   .cv-add:hover{border-color:var(--accent);color:var(--accent)}
   .cv-status{color:var(--muted);font-size:12px;font-style:italic}
+  .cv-target{opacity:.55}
   .cv-datestack{display:flex;flex-direction:column;align-items:flex-end;flex:none;text-align:right;gap:1px}
   .cv-prestitle{font-style:italic;text-align:left} .cv-prestitle .editable{font-weight:400;font-style:italic;display:block;text-align:left}
   .cv-prestitle i{font-style:normal}  /* Latin term inside an italic title → roman */
@@ -458,7 +462,7 @@
     .cv-tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .editable{border:none!important;background:none!important}
     .lnkedit,.cv-add,.cv-del,.cv-chips,.cv-chip,.cv-venuex{display:none!important}
-    .cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
+    .cv-target,.cv-jsep.empty,.cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
     .paste{display:none!important}
   }
   @media(max-width:720px){.app{flex-direction:column}.side{position:static;height:auto;width:100%}.miss ul{columns:1}}
@@ -482,7 +486,7 @@ const TRACK_STATUS={
   funding:["","needed","applied","awarded"], data:["","needed","collecting","acquired"],
   analysis:["","planned","in-progress","complete"], paper:["","idea","in-prep","feedback","in-submission","in-review","accepted","published"]};
 const POSTER_STATUS=["","idea","planned","submitted","accepted","presented"];
-const PTYPES=["Poster","Oral Presentation","Poster + Oral","Abstract"];
+const PTYPES=["Poster","Oral Presentation","Platform Presentation","Poster + Oral","Abstract"];
 const SC={"":"var(--grey)",idea:"var(--grey)",needed:"var(--amber)",planned:"var(--amber)","in-prep":"var(--amber)",
   feedback:"var(--violet)",applied:"var(--blue)",collecting:"var(--blue)","in-progress":"var(--blue)",submitted:"var(--blue)","in-submission":"var(--blue)","in-review":"var(--blue)",
   awarded:"var(--green)",acquired:"var(--green)",complete:"var(--green)",accepted:"var(--green)",presented:"var(--green)",published:"var(--green)"};
@@ -540,7 +544,7 @@ async function boot(){ const r=await fetch('/api/data'); dataMtime=r.headers.get
   normalizeData();
   collapsedGroups.add('tail:accepted'); collapsedGroups.add('tail:rejected');
   // Fresh workspace (no projects yet) → open on the CV, which is where you start.
-  activeLab=(DATA.projects&&DATA.projects.length)?DATA.labs[0]:'__cv__';
+  activeLab=(DATA.projects&&DATA.projects.length)?DATA.labs[0]:(DATA.entries.length||PROF('name'))?'__cv__':'__import__';   // brand-new workspace opens on Import
   buildDatalists(); render(); }
 function migTask(it){
   if(it.owner===undefined)it.owner='';
@@ -580,6 +584,8 @@ function renderSide(){
   srch.addEventListener('input',e=>{curQ=e.target.value; renderMain();}); s.appendChild(srch);
   const cvIt=el('div','navitem'+(activeLab==='__cv__'?' active':'')); cvIt.appendChild(el('span',null,'📄 Curriculum Vitae'));
   cvIt.onclick=()=>{activeLab='__cv__'; render();}; s.appendChild(cvIt);
+  const imIt=el('div','navitem'+(activeLab==='__import__'?' active':'')); imIt.appendChild(el('span',null,'📥 Import résumé'));
+  imIt.onclick=()=>{activeLab='__import__'; render();}; s.appendChild(imIt);
   const asIt=el('div','navitem'+(activeLab==='__assistant__'?' active':'')); asIt.appendChild(el('span',null,'✨ Update Assistant'));
   const asBadge=el('span','n'); asIt.appendChild(asBadge);
   fetch('/api/pending').then(r=>r.json()).then(items=>{ if(items&&items.length){ asBadge.textContent=items.length; asBadge.style.background='var(--amber)'; asBadge.style.color='#fff'; asBadge.style.borderRadius='10px'; asBadge.style.padding='0 6px'; } }).catch(()=>{});
@@ -635,6 +641,7 @@ function labStats(lab){ let prio=0,acc=0,open=0;
 function renderMain(){
   const m=$('#main'); m.innerHTML='';
   if(activeLab==='__cv__'){ renderCV(m); return; }
+  if(activeLab==='__import__'){ renderImport(m); return; }
   if(activeLab==='__assistant__'){ renderAssistant(m); return; }
   if(activeLab==='__specimens__'){ renderSpecimens(m); return; }
   if(activeLab==='__due__'){ renderDue(m); return; }
@@ -1650,12 +1657,13 @@ function wireCitationBuilder(){
 const entriesOf=sec=>DATA.entries.filter(e=>e.section===sec);
 function pubBucket(p){ const s=stageOf(p), st=(p.tracks.paper||{}).status||'';
   if(s==='accepted'||st==='published'||st==='accepted') return 'pub';
-  if(['in-review','in-revision','responding-to-feedback'].includes(s)) return 'review';
+  if(s==='in-revision') return 'revision';
+  if(['in-review','responding-to-feedback'].includes(s)) return 'review';
   if(['in-submission','prepared-for-submission'].includes(s)) return 'submission';
   if(['manuscript-prep','ready-for-feedback'].includes(s)) return 'prep';
   return null; }
-const PUB_LBL={pub:'Accepted',review:'Under review',prep:'In preparation'};
-const PUB_COL={pub:'var(--green)',review:'var(--blue)',prep:'var(--amber)'};
+const PUB_LBL={pub:'Accepted',revision:'In revision',review:'Under review',prep:'In preparation'};
+const PUB_COL={pub:'var(--green)',revision:'var(--blue)',review:'var(--blue)',prep:'var(--amber)'};
 
 function cvHidden(){ const p=DATA.profile||(DATA.profile={}); return p.cvHidden||(p.cvHidden={}); }
 function cvSection(m,title){
@@ -1770,16 +1778,22 @@ function cvYearKey(s){ s=String(s||''); const ys=(s.match(/\d{4}/g)||[]).map(Num
 const byRecent=(a,b)=>cvYearKey(b.date)-cvYearKey(a.date);
 const sortedEntries=sec=>entriesOf(sec).slice().sort(byRecent);
 
-function editJournal(pt){
+function editJournal(pt,target){   // target=true: prep/submission — journal is only a guess, so it's muted in the app and left off the printed CV
   const span=el('span','editable ti');
-  const paint=()=>{ span.textContent=pt.journal?(JABBR[pt.journal]||pt.journal):'journal'; span.classList.toggle('empty',!pt.journal); }; paint();
-  span.onclick=()=>{ const sel=el('select','inlinesel'); ['',...JOURNALS].forEach(j=>sel.appendChild(optn(j,j||'—')));
-    if(pt.journal&&!JOURNALS.includes(pt.journal))sel.appendChild(optn(pt.journal,pt.journal)); sel.value=pt.journal||'';
-    span.replaceWith(sel); sel.focus(); let done=false; const fin=()=>{ if(done)return; done=true; pt.journal=sel.value; queueSave(); renderMain(); };
-    sel.onchange=fin; sel.onblur=fin; };
+  const paint=()=>{ span.textContent=pt.journal?(target?'target: ':'')+(JABBR[pt.journal]||pt.journal):(target?'target journal':'journal'); span.classList.toggle('empty',!pt.journal); }; paint();
+  span.onclick=()=>{ const used=DATA.projects.map(p=>(p.tracks.paper||{}).journal).filter(j=>j&&!JOURNALS.includes(j));
+    const opts=['',...JOURNALS,...[...new Set(used)].sort()]; const sel=el('select','inlinesel');
+    opts.forEach(j=>sel.appendChild(optn(j,j||'—'))); sel.appendChild(optn('__other__','✎ Other…')); sel.value=pt.journal||'';
+    span.replaceWith(sel); sel.focus(); let done=false;
+    const fin=v=>{ if(done)return; done=true; pt.journal=v; queueSave(); renderMain(); };
+    const toInput=()=>{ done=true; const inp=el('input','inlineinput'); inp.value=pt.journal||''; inp.placeholder='journal name'; sel.replaceWith(inp); inp.focus(); let d=false;
+      const f=()=>{ if(d)return; d=true; pt.journal=inp.value.trim(); queueSave(); renderMain(); };
+      inp.onblur=f; inp.onkeydown=e=>{ if(e.key==='Enter')inp.blur(); if(e.key==='Escape'){ inp.value=pt.journal||''; inp.blur(); } }; };
+    sel.onchange=()=>{ if(sel.value==='__other__') toInput(); else fin(sel.value); };
+    sel.onblur=()=>{ if(!done) fin(sel.value==='__other__'?pt.journal:sel.value); }; };
   return span;
 }
-const CVPUB_LBL=Object.assign({},STAGE_LBL,{accepted:'In press',published:'In press'});
+const CVPUB_LBL=Object.assign({},STAGE_LBL,{accepted:'In Press',published:'In Press','manuscript-prep':'In Preparation','ready-for-feedback':'In Preparation'});
 function renderPubItem(p){
   const pt=p.tracks.paper||(p.tracks.paper={status:'',items:[]}); const d=el('div','cv-pub'); const b=pubBucket(p);
   d.appendChild(editRich(()=>pt.authors?boldMe(abbrevAuthors(pt.authors)):'', ()=>pt.authors||'', v=>{pt.authors=v;}, {ph:'[author list]'}));
@@ -1788,10 +1802,10 @@ function renderPubItem(p){
   d.appendChild(document.createTextNode('). '));
   d.appendChild(editSci(()=>pt.full_title||'', v=>{pt.full_title=v;}, {ph:p.name+' — add title', area:true}));
   d.appendChild(document.createTextNode('. '));
-  d.appendChild(editJournal(pt));
-  d.appendChild(document.createTextNode('. '));
+  const tgt=(b==='prep'||b==='submission')&&!pt.journalOnCV; const jw=el('span',tgt?'cv-target':null);
+  jw.appendChild(editJournal(pt,tgt)); jw.appendChild(el('span','cv-jsep'+(pt.journal?'':' empty'),'. ')); d.appendChild(jw);
   if(pt.pubinfo){ d.appendChild(editText(()=>pt.pubinfo, v=>{pt.pubinfo=v;}, {})); d.appendChild(document.createTextNode(' ')); }
-  let status=''; if(b==='pub') status = pt.pubinfo ? '' : 'In press'; else if(b==='review') status='Under review'; else if(b==='submission') status='In submission'; else if(b==='prep') status='In preparation';
+  let status=''; if(b==='pub') status = pt.pubinfo ? '' : 'In press'; else if(b==='revision') status='In revision'; else if(b==='review') status='Under review'; else if(b==='submission') status='In submission'; else if(b==='prep') status='In preparation';
   if(status){ const st=el('span','cv-status'); st.appendChild(selValue(()=>stageOf(p),v=>{p.stage=v;},STAGE_ORDER,CVPUB_LBL)); d.appendChild(st); }
   return d;
 }
@@ -1804,10 +1818,13 @@ function collectPosters(){
   }));
   const yof=arr=>Math.max(0,...arr.map(pr=>parseInt((String(pr.date).match(/20\d\d/)||[])[0])||0));
   const AR={'first':0,'co-first':1,'second':2,'third':3,'middle':4};
-  out.sort((a,b)=>{                                    // year desc → conference asc → author position
+  const SR=pr=>(pr.some(x=>x.status==='presented')?0:pr.some(x=>x.status==='accepted')?1:2);
+  out.sort((a,b)=>{                                    // presented → accepted → rest, then year desc → conference asc → author position
+    const ds=SR(a.vis)-SR(b.vis); if(ds) return ds;
     const dy=yof(b.vis)-yof(a.vis); if(dy) return dy;
     const c=((a.vis[0]||{}).conference||'').toLowerCase().localeCompare(((b.vis[0]||{}).conference||'').toLowerCase()); if(c) return c;
-    return (AR[a.ps.authorship]??9)-(AR[b.ps.authorship]??9);
+    const best=x=>Math.min(...x.vis.map(pr=>AR[pr.authorship||x.ps.authorship]??9));
+    return best(a)-best(b);
   });
   return out;
 }
@@ -1817,8 +1834,8 @@ function renderVenueRow(p,ps,pr){
   row.appendChild(editText(()=>pr.date||'',v=>{pr.date=v;},{ph:'year'}));
   row.appendChild(selValue(()=>pr.status,v=>{pr.status=v;},PRES_STATUS,PRES_STATUS_LBL));
   row.appendChild(el('span','sep','·'));
-  row.appendChild(selValue(()=>ps.type||'Poster',v=>{ps.type=v;},PTYPES,null));
-  row.appendChild(selValue(()=>ps.authorship,v=>{ps.authorship=v;},AUTH,AUTH_LBL));
+  row.appendChild(selValue(()=>pr.type||ps.type||'Poster',v=>{pr.type=v;},PTYPES,null));   // type is per venue (same abstract can be a poster at one meeting, a platform at another)
+  row.appendChild(selValue(()=>pr.authorship||ps.authorship,v=>{pr.authorship=v;},AUTH,AUTH_LBL));   // authorship is per venue too
   const dw=el('span','cv-distinction'); dw.appendChild(editText(()=>pr.note||'',v=>{pr.note=v;},{ph:'+ distinction'})); row.appendChild(dw);
   const x=el('button','cv-venuex','×'); x.title='remove this venue';
   x.onclick=()=>{ ps.presentations=(ps.presentations||[]).filter(z=>z!==pr); if(!ps.presentations.length)p.posters=(p.posters||[]).filter(z=>z!==ps); queueSave(); renderMain(); };
@@ -1854,7 +1871,7 @@ function renderGrantRow(g){
   av.appendChild(el('span','sep',' · '));
   const stg=el('span','cv-status'); stg.appendChild(selValue(()=>g.status,v=>{g.status=v;},GRANT_STATUS,GRANT_STAGE_LBL)); av.appendChild(stg);
   arow.appendChild(av); it.appendChild(arow);
-  fieldRows(it,g,[{key:'project',label:'Title:',para:true,ph:'project / work title',chip:'Title'},{key:'note',label:'Description:',para:true,ph:'description of the work',chip:'Description'},{key:'amount',label:'Amount:',ph:'$—',chip:'Amount'},{key:'contribution',label:'Contribution:',ph:'how I contributed',chip:'Contribution'}]);
+  fieldRows(it,g,[{key:'project',label:'Title:',para:true,ph:'project / work title',chip:'Title'},{key:'note',label:'Description:',para:true,ph:'description of the work',chip:'Description'},{key:'amount',label:'Amount:',ph:'$—',chip:'Amount'},{key:'mentor',label:'Mentor:',ph:'mentor',chip:'Mentor'},{key:'contribution',label:'Contribution:',ph:'how I contributed',chip:'Contribution'}]);
   return it;
 }
 
@@ -1965,14 +1982,15 @@ function renderCV(m){
   // ---- Publications ----
   const pubSec=cvSection(cv,'Publications');
   pubSec.appendChild(citationBuilderBox());
-  const buckets={pub:[],review:[],submission:[],prep:[]};
+  const buckets={pub:[],revision:[],review:[],submission:[],prep:[]};
   DATA.projects.forEach(p=>{ const b=pubBucket(p); if(b)buckets[b].push(p); });
   const pubYear=p=>{ const pt=p.tracks.paper||{}; return parseInt(pt.year) || parseInt(((pt.authors||'').match(/\((\d{4})\)/)||[])[1]) || 0; };
-  const subs=[['pub','Peer-Reviewed Publications'],['review','Manuscripts Under Review'],['submission','Manuscripts In Submission']];
+  const subs=[['pub','Peer-Reviewed Publications'],['revision','Manuscripts In Revision'],['review','Manuscripts Under Review'],['submission','Manuscripts In Submission'],['prep','Manuscripts In Preparation']];
   let anyPub=false;
   subs.forEach(([k,lbl])=>{ if(!buckets[k].length)return; anyPub=true;
     pubSec.appendChild(el('div','cv-h3',lbl));
     buckets[k].slice().sort((a,b)=>pubYear(b)-pubYear(a)).forEach(p=>pubSec.appendChild(renderPubItem(p))); });
+  if(anyPub&&DATA.projects.some(p=>pubBucket(p)&&/\*/.test((p.tracks.paper||{}).authors||''))) pubSec.appendChild(el('div','cv-sub','* Equal contribution.'));
   if(!anyPub) cvNone(pubSec,'Publications are pulled from projects with a manuscript stage (Manuscript Preparation → Accepted).');
 
   // ---- Abstracts & Presentations ----
@@ -2107,6 +2125,108 @@ $('#newProjDlg').addEventListener('close',()=>{ if($('#newProjDlg').returnValue!
   activeLab=$('#npLab').value; expanded.add(id); queueSave(); render(); });
 
 /* ---------- ✨ Update Assistant (Claude-powered) ---------- */
+/* ---- Import résumé: copy a prompt into any chat AI (ChatGPT, Claude…), paste its JSON reply back ---- */
+const IMPORT_PROMPT=`I'm going to paste my résumé / CV / list of activities below. Turn it into JSON for a CV app.
+
+Rules:
+- Reply with ONE JSON code block and nothing else.
+- Keep my exact wording. Never invent dates, names, titles, amounts or authors — use "" when something isn't given.
+- Every key below must be present; use [] for an empty list.
+- Experience "kind" is one of: research, volunteer, entrepreneurship, leadership.
+- Publication "status" is one of: published, in-press, in-revision, under-review, submitted, in-preparation.
+- Presentation venue "status" is presented or accepted; "type" is Poster, Oral Presentation, Platform Presentation or Abstract;
+  "my_position" is first, co-first, second, third or middle.
+- Grant "my_role" is lead (I was the applicant) or contributor (someone else applied).
+
+{
+  "profile": {"name":"", "credentials":"", "email":"", "phone":"", "location":"", "orcid":"", "scholar":"", "linkedin":""},
+  "education": [{"institution":"", "degree":"", "dates":"", "location":"", "gpa":"", "awards":"", "activities":"", "description":""}],
+  "experience": [{"kind":"research", "title":"organization or 'Lab of …'", "role":"", "institution":"", "location":"", "dates":"", "supervisor":"", "description":""}],
+  "honors": [{"title":"", "year":"", "amount":"", "description":""}],
+  "grants": [{"name":"", "my_role":"lead", "applicant":"", "status":"awarded", "year":"", "title":"", "amount":"", "mentor":""}],
+  "publications": [{"authors":"Last, FM, Last, FM, …", "year":"", "title":"", "journal":"", "status":"published", "doi":""}],
+  "presentations": [{"title":"", "venues":[{"conference":"", "year":"", "status":"presented", "type":"Poster", "my_position":"first", "note":""}]}],
+  "peer_review": [{"journal":"", "year":"", "role":""}]
+}
+
+My résumé:
+`;
+const IMP_STAGE={'published':'accepted','in-press':'accepted','in-revision':'in-revision','under-review':'in-review','submitted':'in-submission','in-preparation':'manuscript-prep'};
+let importDraft=null, importText='';
+function parseImport(txt){
+  const m=txt.match(/```(?:json)?\s*([\s\S]*?)```/); const raw=(m?m[1]:txt).trim();
+  const a=raw.indexOf('{'), b=raw.lastIndexOf('}'); if(a<0||b<a) throw new Error('No JSON found — paste the whole reply from the chat.');
+  return JSON.parse(raw.slice(a,b+1));
+}
+const impNorm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const impArr=x=>Array.isArray(x)?x:[];
+function planImport(j){                       // → {profile:{k:v}, entries:[], grants:[], projects:[], skipped:n}
+  const plan={profile:{},entries:[],grants:[],projects:[],skipped:0};
+  const prof=DATA.profile||{}; Object.entries(j.profile||{}).forEach(([k,v])=>{ if(v&&!prof[k]) plan.profile[k]=String(v); });
+  const haveE=new Set(DATA.entries.map(e=>e.section+'|'+impNorm(e.title)+'|'+impNorm(e.date)));
+  const addE=e=>{ const k=e.section+'|'+impNorm(e.title)+'|'+impNorm(e.date); if(!e.title||haveE.has(k)){plan.skipped++;return;} haveE.add(k);
+    plan.entries.push(Object.assign({id:'e'+Math.abs(hash('imp'+k+(_pc++))),org:'',date:'',city:'',amount:'',note:'',gpa:'',awards:'',activities:''},e)); };
+  impArr(j.education).forEach(x=>addE({section:'Education',title:x.institution||'',org:x.degree||'',date:x.dates||'',city:x.location||'',gpa:x.gpa||'',awards:x.awards||'',activities:x.activities||'',note:x.description||''}));
+  impArr(j.experience).forEach(x=>{ const kind=(x.kind||'research').toLowerCase();
+    if(kind==='leadership') addE({section:'Activities',title:x.title||'',position:x.role||'',date:x.dates||'',city:x.location||'',pi:x.supervisor||'',note:x.description||''});
+    else addE({section:'Experience',kind:['volunteer','entrepreneurship'].includes(kind)?kind:'research',title:x.title||'',position:x.role||'',institution:x.institution||'',date:x.dates||'',city:x.location||'',supervisor:x.supervisor||'',note:x.description||''}); });
+  impArr(j.honors).forEach(x=>addE({section:'Funding / Scholarship',title:x.title||'',date:x.year||'',amount:x.amount||'',note:x.description||''}));
+  impArr(j.peer_review).forEach(x=>addE({section:'Peer Review Activity',title:x.journal||'',date:x.year||'',org:x.role||''}));
+  const haveG=new Set(DATA.grants.map(g=>impNorm(g.name)+'|'+impNorm(g.year)));
+  impArr(j.grants).forEach(x=>{ const k=impNorm(x.name)+'|'+impNorm(x.year); if(!x.name||haveG.has(k)){plan.skipped++;return;} haveG.add(k);
+    plan.grants.push({id:'g'+Math.abs(hash('imp'+k+(_pc++))),lab:'',name:x.name,sponsor:'',amount:x.amount||'',deadline:'',year:x.year||'',
+      status:(x.status||'awarded').toLowerCase(),owner:(x.my_role||'lead')==='lead'?(myName()||plan.profile.name||x.applicant||''):(x.applicant||''),project:x.title||'',mentor:x.mentor||'',note:''}); });
+  const haveP=new Set(DATA.projects.flatMap(p=>[impNorm((p.tracks.paper||{}).full_title),...(p.posters||[]).map(ps=>impNorm(ps.note))]).filter(Boolean));
+  const mkProj=(name,stage)=>{ const tracks={paper:{status:'',items:[]}}; WORK.forEach(w=>tracks[w]={status:'',items:[]}); tracks.poster={status:'',items:[]};
+    return {id:slug(name)+'-'+Math.abs(hash(name+(_pc++))).toString(36).slice(0,4),name:name.slice(0,60),lab:'',group:'',priority:0,stage,authorship:'',dataset:'',pi:[],dirs:[],tags:[],archived:false,posters:[],tracks}; };
+  impArr(j.publications).forEach(x=>{ const t=x.title||''; if(!t||haveP.has(impNorm(t))){plan.skipped++;return;} haveP.add(impNorm(t));
+    const p=mkProj(t,IMP_STAGE[(x.status||'').toLowerCase()]||'manuscript-prep');
+    Object.assign(p.tracks.paper,{authors:x.authors||'',year:x.year||'',full_title:t,journal:x.journal||'',pubinfo:x.doi?('doi:'+String(x.doi).replace(/^(https?:\/\/)?(dx\.)?doi\.org\/|^doi:\s*/i,'')):''});
+    plan.projects.push(p); });
+  impArr(j.presentations).forEach(x=>{ const t=x.title||''; const vs=impArr(x.venues).filter(v=>v.conference);
+    if(!t||!vs.length||haveP.has(impNorm(t))){plan.skipped++;return;} haveP.add(impNorm(t));
+    const p=mkProj(t,'analysis'); const first=vs[0]; p.authorship=first.my_position||'';
+    p.posters=[{id:p.id+'-p1',authorship:first.my_position||'',type:first.type||'Poster',note:t,
+      presentations:vs.map(v=>({conference:v.conference,date:v.year||'',status:(v.status||'presented').toLowerCase(),type:v.type||'',authorship:v.my_position||'',note:v.note||''}))}];
+    plan.projects.push(p); });
+  return plan;
+}
+function applyImport(plan){
+  const prof=DATA.profile||(DATA.profile={}); Object.assign(prof,plan.profile);
+  let lab=DATA.labs.find(l=>!CV_SECTIONS.includes(l)&&l!=='__cv__'); if(!lab){ lab='My Research'; DATA.labs.unshift(lab); }
+  plan.projects.forEach(p=>{ p.lab=lab; if(!p.authorship&&p.tracks.paper.authors) p.authorship=detectAuthorship(p.tracks.paper.authors); }); plan.grants.forEach(g=>{g.lab=lab;});   // after the name is set, so 'me' is found
+  DATA.entries.push(...plan.entries); DATA.grants.push(...plan.grants); DATA.projects.push(...plan.projects);
+}
+function renderImport(m){
+  m.appendChild(el('h2',null,'📥 Import your résumé'));
+  m.appendChild(el('p','hint','Works with any chat AI — ChatGPT, Claude, Gemini, free plans included. Nothing is sent anywhere by this app; you copy and paste.'));
+  const s1=el('div','imp-card'); s1.appendChild(el('h3',null,'1 · Copy the instructions'));
+  s1.appendChild(el('p',null,'Click the button, open ChatGPT or Claude in another tab, paste, then paste your résumé (or a list of everything you’ve done) right after it and send.'));
+  const pr=el('textarea','imp-prompt'); pr.readOnly=true; pr.value=IMPORT_PROMPT; pr.rows=6;
+  const cp=el('button','btn','📋 Copy instructions');
+  cp.onclick=async()=>{ try{ await navigator.clipboard.writeText(IMPORT_PROMPT); }catch(e){ pr.select(); document.execCommand('copy'); } cp.textContent='✓ Copied — now paste it into the chat'; };
+  s1.appendChild(cp); s1.appendChild(pr); m.appendChild(s1);
+  const s2=el('div','imp-card'); s2.appendChild(el('h3',null,'2 · Paste the chat’s answer here'));
+  const ta=el('textarea','imp-paste'); ta.rows=8; ta.placeholder='Paste the whole reply (the block that starts with { … ) here'; ta.value=importText;
+  ta.oninput=()=>{ importText=ta.value; };
+  const pv=el('button','btn','Preview'); const out=el('div','imp-out');
+  pv.onclick=()=>{ out.innerHTML=''; importDraft=null;
+    try{ importDraft=planImport(parseImport(ta.value)); }catch(e){ out.appendChild(el('p','imp-err','That didn’t read as the expected format: '+e.message+' Ask the chat to “reply with only the JSON code block” and paste again.')); return; }
+    const d=importDraft, sec={}; d.entries.forEach(e=>{ const k=e.section==='Experience'?(e.kind==='research'?'Research Experience':cap(e.kind)):({'Activities':'Leadership & Service','Funding / Scholarship':'Honors & Awards','Peer Review Activity':'Peer Review'}[e.section]||e.section); (sec[k]=sec[k]||[]).push(e.title); });
+    if(d.grants.length) sec['Grants & Funding']=d.grants.map(g=>g.name);
+    const pubs=d.projects.filter(p=>p.tracks.paper.full_title), pres=d.projects.filter(p=>!p.tracks.paper.full_title);
+    if(pubs.length) sec['Publications']=pubs.map(p=>p.tracks.paper.full_title); if(pres.length) sec['Abstracts & Presentations']=pres.map(p=>p.posters[0].note);
+    const pk=Object.keys(d.profile); if(pk.length) out.appendChild(el('p',null,'Header: will fill in '+pk.join(', ')+'.'));
+    Object.entries(sec).forEach(([k,v])=>{ const dt=el('details'); dt.appendChild(el('summary',null,k+' — '+v.length)); const ul=el('ul'); v.forEach(t=>ul.appendChild(el('li',null,t))); dt.appendChild(ul); out.appendChild(dt); });
+    if(d.skipped) out.appendChild(el('p','hint',d.skipped+' item'+(d.skipped>1?'s':'')+' skipped (already in your workspace, or missing a title).'));
+    const n=d.entries.length+d.grants.length+d.projects.length+pk.length;
+    if(!n){ out.appendChild(el('p',null,'Nothing new to add.')); return; }
+    const go=el('button','btn','✓ Add these to my CV');
+    go.onclick=()=>{ applyImport(importDraft); importDraft=null; importText=''; queueSave(); activeLab='__cv__'; render(); };
+    out.appendChild(go); out.appendChild(el('p','hint','Adds only — nothing you already have is changed. You can edit or delete anything afterwards by clicking it on the CV.')); };
+  s2.appendChild(ta); s2.appendChild(pv); s2.appendChild(out); m.appendChild(s2);
+}
+
 function renderAssistant(m){
   const h=el('div','lhead'); h.innerHTML='<h1>✨ Update Assistant</h1><div class="stats"><span>Connect Gmail for automatic updates, or paste anything. Claude routes it to the right project and proposes changes for your approval.</span></div>'; m.appendChild(h);
   const keyBox=el('div','asst-key'); m.appendChild(keyBox);

@@ -11,6 +11,7 @@
 !CLAUDE.md
 !install.sh
 !start.sh
+!launch.sh
 !serve.py
 
 !app/
@@ -21,6 +22,10 @@
 
 !tools/
 !tools/report.py
+!tools/make_app.sh
+
+!assets/
+!assets/AppIcon.icns
 
 # --- never tracked, restated for anyone reading this file ---
 # data/            live workspace, backups, and data/config.json (API key,

@@ -17,6 +17,8 @@ data/backups/        Timestamped copies. Not in git.
 data/config.json     API key, email app password. Not in git. Never read, print,
                      echo, or commit this file.
 start.sh             Seeds data on first run, picks a free port, opens browser.
+launch.sh            What the Dock icon runs: reuses a running server or starts one.
+tools/make_app.sh    Builds ~/Applications/ResearchOps.app and pins it to the Dock.
 ```
 
 Everything except the files listed in `.gitignore`'s allowlist is untracked. The
