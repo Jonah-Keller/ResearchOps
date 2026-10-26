@@ -468,7 +468,7 @@
     .cv-tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .editable{border:none!important;background:none!important}
     .lnkedit,.cv-add,.cv-del,.cv-chips,.cv-chip,.cv-venuex{display:none!important}
-    .cv-target,.cv-jsep.empty,.cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
+    .cv-boldas,.cv-target,.cv-jsep.empty,.cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
     .paste{display:none!important}
   }
   @media(max-width:720px){.app{flex-direction:column}.side{position:static;height:auto;width:100%}.miss ul{columns:1}}
@@ -535,11 +535,14 @@ const myName=()=>((DATA&&DATA.profile&&DATA.profile.name)||'');
 const omicsLab=()=>((DATA&&DATA.flags&&DATA.flags.omicsLab)||'');
 // "Is this me?" — everything that used to hardcode a name derives from profile.name.
 const rxEsc=t=>String(t).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-const myNameParts=()=>myName().trim().split(/\s+/).filter(Boolean);
+const CRED_RE=/,\s*(?:MD|M\.D\.|DO|PhD|Ph\.D\.|MPH|MS|MSc|MA|BS|BA|BSN|RN|NP|PA-C|PharmD|MBA|JD)\b.*$/i;   // "Jane Doe, MD" → "Jane Doe"
+const myNameParts=()=>myName().replace(CRED_RE,'').trim().split(/\s+/).filter(Boolean);
+// Other spellings to bold in author lists (maiden name, "Doe, JA"…), from profile.authorNames, ';'-separated
+const altAuthorNames=()=>String(PROF('authorNames')).split(';').map(x=>x.trim()).filter(Boolean);
 function meRe(loose){
   const p=myNameParts(); if(!p.length) return null;
   const inits=p.map(x=>x[0]).filter(c=>/[A-Za-z]/.test(c)).join('');
-  const alts=[p[p.length-1],p[0]].concat(loose?[inits,'me']:[]);
+  const alts=[p[p.length-1],p[0]].concat(altAuthorNames().map(v=>v.split(/[,\s]+/)[0]),loose?[inits,'me']:[]);
   return new RegExp('\\b('+alts.filter(Boolean).map(rxEsc).join('|')+')\\b','i');
 }
 const isMeName =s=>{const r=meRe();     return !!r&&r.test(s||'');};  // author lists
@@ -1610,17 +1613,20 @@ function linkField(key,label,ph,opts={}){
 // Bold the CV owner wherever they appear in an author list. Name comes from
 // profile.name, so the same app works for whoever owns the workspace.
 function boldMe(s){
-  const out=esc(s);
+  const out=esc(s), pats=[];
   const parts=myNameParts();
-  if(parts.length<2) return out;
-  const first=parts[0], last=parts[parts.length-1];
-  const mid=parts.slice(1,-1).map(p=>p[0]).filter(c=>/[A-Za-z]/.test(c));
-  //  "Jane Doe" · "Jane R. Doe" · "Jane Rose Doe"
-  const full=new RegExp('('+rxEsc(first)+'(?:\\s+(?:[A-Z][a-z]+|[A-Z]\\.))?\\s+'+rxEsc(last)+')','g');
-  //  "Doe J" · "Doe J." · "Doe JR" · "Doe, J.R."
-  const inits=rxEsc(first[0])+'\\.?'+(mid.length?'(?:\\s*'+mid.map(c=>rxEsc(c)+'\\.?').join('\\s*')+')?':'');
-  const abbrev=new RegExp('('+rxEsc(last)+',?\\s*'+inits+')','g');
-  return out.replace(full,'<b>$1</b>').replace(abbrev,'<b>$1</b>');
+  if(parts.length>=2){
+    const first=parts[0], last=parts[parts.length-1];
+    const mid=parts.slice(1,-1).map(p=>p[0]).filter(c=>/[A-Za-z]/.test(c));
+    //  "Jane Doe" · "Jane R. Doe" · "Jane Rose Doe"
+    pats.push(rxEsc(first)+'(?:\\s+(?:[A-Z][a-z]+|[A-Z]\\.))?\\s+'+rxEsc(last));
+    //  "Doe J" · "Doe J." · "Doe JR" · "Doe, J.R."
+    const inits=rxEsc(first[0])+'\\.?'+(mid.length?'(?:\\s*'+mid.map(c=>rxEsc(c)+'\\.?').join('\\s*')+')?':'');
+    pats.push(rxEsc(last)+',?\\s*'+inits);
+  }
+  altAuthorNames().forEach(v=>pats.push(rxEsc(esc(v)).replace(/\\\./g,'\\.?').replace(/,\s*/g,',?\\s*').replace(/\s+/g,'\\s+')));   // exact spelling; periods and comma optional
+  if(!pats.length) return out;
+  return out.replace(new RegExp('('+pats.join('|')+')(?![A-Za-z])','g'),'<b>$1</b>');
 }
 // Latin / scientific terms that should be italicised anywhere they appear in CV prose.
 const SCI_RE=new RegExp('(?<![A-Za-z])('+[
@@ -1860,6 +1866,8 @@ function editJournal(pt,target){   // target=true: prep/submission — journal i
     sel.onblur=()=>{ if(!done) fin(sel.value==='__other__'?pt.journal:sel.value); }; };
   return span;
 }
+// "https://doi.org/10.1038/x", "doi: 10.1038/x" or "10.1038/x" → "doi:10.1038/x"; any other text is kept as typed
+function normDoi(v){ v=(v||'').trim(); const m=v.match(/^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:?\s*)?(10\.\d{4,9}\/\S+?)[.,;]?$/i); return m?'doi:'+m[1]:v; }
 const CVPUB_LBL=Object.assign({},STAGE_LBL,{accepted:'In Press',published:'In Press','manuscript-prep':'In Preparation','ready-for-feedback':'In Preparation'});
 function renderPubItem(p){
   const pt=p.tracks.paper||(p.tracks.paper={status:'',items:[]}); const d=el('div','cv-pub'); const b=pubBucket(p);
@@ -1871,7 +1879,7 @@ function renderPubItem(p){
   d.appendChild(document.createTextNode('. '));
   const tgt=(b==='prep'||b==='submission')&&!pt.journalOnCV; const jw=el('span',tgt?'cv-target':null);
   jw.appendChild(editJournal(pt,tgt)); jw.appendChild(el('span','cv-jsep'+(pt.journal?'':' empty'),'. ')); d.appendChild(jw);
-  if(pt.pubinfo){ d.appendChild(editText(()=>pt.pubinfo, v=>{pt.pubinfo=v;}, {})); d.appendChild(document.createTextNode(' ')); }
+  if(pt.pubinfo||b==='pub'){ d.appendChild(editText(()=>pt.pubinfo||'', v=>{pt.pubinfo=normDoi(v);}, {ph:'+ paste DOI'})); d.appendChild(document.createTextNode(' ')); }   // accepted papers always offer a DOI slot
   let status=''; if(b==='pub') status = pt.pubinfo ? '' : 'In press'; else if(b==='revision') status='In revision'; else if(b==='review') status='Under review'; else if(b==='submission') status='In submission'; else if(b==='prep') status='In preparation';
   if(status){ const st=el('span','cv-status'); st.appendChild(selValue(()=>stageOf(p),v=>{p.stage=v;},STAGE_ORDER,CVPUB_LBL)); d.appendChild(st); }
   return d;
@@ -2017,6 +2025,8 @@ function renderCV(m){
   // isn't a dangling field in workspaces that don't have one.
   ].concat(PROF('samvid')?[linkField('samvid','Samvid Scholar','https://samvidscholars.org/team/…')]:[]));
   hd.appendChild(prof2);
+  const ba=el('div','cv-boldas hint'); ba.appendChild(document.createTextNode('Bolded in author lists: '+(myNameParts().join(' ')||'(type your name above)')+' · other spellings to bold: '));
+  ba.appendChild(profField('authorNames','e.g. Doe, JA; Smith, JA')); hd.appendChild(ba);
   cv.appendChild(hd);
 
   // ---- Education (reverse-chronological) ----
