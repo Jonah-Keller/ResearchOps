@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ResearchOps</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2f5d8a">
 <style>
   :root{
     --bg:#f7f8fa; --panel:#ffffff; --sunk:#eef1f5; --ink:#1d2430; --muted:#6b7688; --faint:#9aa4b4;
@@ -47,6 +51,8 @@
   .hint{color:var(--faint);font-size:12px}
   .imp-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;max-width:820px}
   .imp-card textarea{display:block;width:100%;box-sizing:border-box;margin-top:10px;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:12px ui-monospace,Menlo,monospace;resize:vertical}
+  .imp-banner{background:var(--amber);color:#fff;border-radius:10px;padding:9px 14px;margin-bottom:12px;cursor:pointer;font-weight:600}
+  @media print{.imp-banner{display:none!important}}
   .imp-out{margin-top:10px} .imp-out details{margin:4px 0} .imp-out .btn{margin-top:8px} .imp-err{color:var(--red)}
   .ppf{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--faint)}
   .ppl{font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -540,7 +546,65 @@ const isMeName =s=>{const r=meRe();     return !!r&&r.test(s||'');};  // author 
 const isMeOwner=s=>{const r=meRe(true); return !r||r.test(s||'');};   // owner fields; no name set → assume mine
 const esc=s=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-async function boot(){ const r=await fetch('/api/data'); dataMtime=r.headers.get('X-Data-Mtime'); DATA=await r.json();
+// Web mode: opened from a link (GitHub Pages) with no local server. The workspace lives in this browser's
+// IndexedDB; an automatic backup file (Chrome/Edge) and download/restore (any browser) guard against it being cleared.
+const WEB=!/^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=indexedDB.open('researchops',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }));
+  const tx=(mode,fn)=>open().then(db=>new Promise((res,rej)=>{ const t=db.transaction('kv',mode); const q=fn(t.objectStore('kv')); t.oncomplete=()=>res(q.result); t.onerror=()=>rej(t.error); }));
+  return {get:k=>tx('readonly',s=>s.get(k)), set:(k,v)=>tx('readwrite',s=>s.put(v,k))}; })();
+let backupHandle=null, backupState='', lastBackup='';   // backupState: '' none · 'ok' auto-writing · 'paused' needs one click to re-allow
+const nowStamp=()=>{ const d=new Date(), z=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()); };
+async function webLoad(){
+  let d=await idb.get('workspace'); if(!d) d=await (await fetch('../seed/projects.json')).json();
+  try{ backupHandle=(await idb.get('backupHandle'))||null; lastBackup=(await idb.get('lastBackup'))||'';
+    if(backupHandle) backupState=(await backupHandle.queryPermission({mode:'readwrite'}))==='granted'?'ok':'paused'; }catch(e){ backupHandle=null; }
+  try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist(); }catch(e){}
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  return d; }
+async function writeBackupFile(){ const w=await backupHandle.createWritable(); await w.write(JSON.stringify(DATA,null,1)); await w.close(); lastBackup=nowStamp(); await idb.set('lastBackup',lastBackup); }
+async function webSave(){ DATA.updated=nowStamp(); await idb.set('workspace',JSON.parse(JSON.stringify(DATA)));
+  if(backupHandle&&backupState==='ok'){ try{ await writeBackupFile(); }catch(e){ backupState='paused'; } } }
+function downloadBackup(){ const a=el('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(DATA,null,1)],{type:'application/json'}));
+  a.download='ResearchOps backup '+nowStamp().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove();
+  lastBackup=nowStamp(); idb.set('lastBackup',lastBackup); }
+const backupStale=()=>backupState!=='ok'&&(DATA.entries.length||DATA.projects.length)&&(!lastBackup||(Date.now()-new Date(lastBackup.replace(' ','T')))>14*864e5);
+function backupBanner(m){ if(!WEB||!backupStale()) return;
+  const b=el('div','imp-banner',backupState==='paused'?'💾 Automatic backup is paused — click to turn it back on.':'💾 Your CV is saved only in this browser. Click here to keep a backup copy too.');
+  b.onclick=()=>{activeLab='__backup__'; render();}; m.appendChild(b); }
+function renderBackup(m){
+  m.appendChild(el('h2',null,'💾 Backup'));
+  m.appendChild(el('p',null,'Your CV is saved inside this browser, on this computer — it is never uploaded. If the browser’s data is ever cleared, a backup file is how you get it back.'));
+  const c1=el('div','imp-card');
+  if(window.showSaveFilePicker){
+    c1.appendChild(el('h3',null,'Automatic backup file'));
+    if(backupState==='ok') c1.appendChild(el('p',null,'✓ On. Every change is also saved to “'+backupHandle.name+'”'+(lastBackup?' (last saved '+lastBackup+').':'.')));
+    else if(backupState==='paused'){ c1.appendChild(el('p',null,'Paused — the browser needs your OK again to keep updating “'+backupHandle.name+'”.'));
+      const on=el('button','btn','Turn automatic backup back on');
+      on.onclick=async()=>{ if((await backupHandle.requestPermission({mode:'readwrite'}))==='granted'){ backupState='ok'; await writeBackupFile(); render(); } }; c1.appendChild(on); }
+    else c1.appendChild(el('p',null,'Pick a place (your Documents folder is good) and every change will be copied there automatically.'));
+    const pick=el('button',backupState?'btn ghost':'btn',backupState?'Choose a different file…':'Choose where to keep the backup');
+    pick.onclick=async()=>{ try{ backupHandle=await window.showSaveFilePicker({suggestedName:'ResearchOps backup.json',startIn:'documents',types:[{description:'ResearchOps backup',accept:{'application/json':['.json']}}]});
+      await idb.set('backupHandle',backupHandle); backupState='ok'; await writeBackupFile(); render(); }catch(e){} };
+    c1.appendChild(pick);
+  } else {
+    c1.appendChild(el('h3',null,'Download a backup'));
+    c1.appendChild(el('p',null,'This browser can’t keep a backup file updated by itself, so download one now and then (once a month is plenty).'+(lastBackup?' Last download: '+lastBackup+'.':'')));
+  }
+  const dl=el('button','btn ghost','⬇ Download a backup now'); dl.onclick=()=>{ downloadBackup(); render(); }; c1.appendChild(dl);
+  m.appendChild(c1);
+  const c2=el('div','imp-card'); c2.appendChild(el('h3',null,'Restore, or move to another computer'));
+  c2.appendChild(el('p',null,'Open the same link on the other computer, come to this page, and pick your backup file. This replaces what’s in this browser.'));
+  const fi=el('input'); fi.type='file'; fi.accept='.json,application/json';
+  fi.onchange=async()=>{ const f=fi.files[0]; if(!f) return; let d; try{ d=JSON.parse(await f.text()); }catch(e){ alert('That file isn’t a ResearchOps backup.'); return; }
+    if(!d||!Array.isArray(d.projects)||!Array.isArray(d.entries)){ alert('That file isn’t a ResearchOps backup.'); return; }
+    if(!confirm('Replace everything in this browser with “'+f.name+'”?')) return;
+    DATA=d; normalizeData(); await webSave(); activeLab='__cv__'; buildDatalists(); render(); };
+  c2.appendChild(fi); m.appendChild(c2);
+  if(!matchMedia('(display-mode: standalone)').matches){ const c3=el('div','imp-card'); c3.appendChild(el('h3',null,'Put it in your Dock'));
+    c3.appendChild(el('p',null,'Chrome: click the install icon at the right end of the address bar (or ⋮ → Cast, save and share → Install page as app). Safari: File → Add to Dock.')); m.appendChild(c3); }
+}
+
+async function boot(){ if(WEB){ DATA=await webLoad(); } else { const r=await fetch('/api/data'); dataMtime=r.headers.get('X-Data-Mtime'); DATA=await r.json(); }
   normalizeData();
   collapsedGroups.add('tail:accepted'); collapsedGroups.add('tail:rejected');
   // Fresh workspace (no projects yet) → open on the CV, which is where you start.
@@ -588,8 +652,10 @@ function renderSide(){
   imIt.onclick=()=>{activeLab='__import__'; render();}; s.appendChild(imIt);
   const asIt=el('div','navitem'+(activeLab==='__assistant__'?' active':'')); asIt.appendChild(el('span',null,'✨ Update Assistant'));
   const asBadge=el('span','n'); asIt.appendChild(asBadge);
-  fetch('/api/pending').then(r=>r.json()).then(items=>{ if(items&&items.length){ asBadge.textContent=items.length; asBadge.style.background='var(--amber)'; asBadge.style.color='#fff'; asBadge.style.borderRadius='10px'; asBadge.style.padding='0 6px'; } }).catch(()=>{});
-  asIt.onclick=()=>{activeLab='__assistant__'; render();}; s.appendChild(asIt);
+  if(!WEB) fetch('/api/pending').then(r=>r.json()).then(items=>{ if(items&&items.length){ asBadge.textContent=items.length; asBadge.style.background='var(--amber)'; asBadge.style.color='#fff'; asBadge.style.borderRadius='10px'; asBadge.style.padding='0 6px'; } }).catch(()=>{});
+  asIt.onclick=()=>{activeLab='__assistant__'; render();}; if(!WEB) s.appendChild(asIt);   // the assistant needs the local server
+  if(WEB){ const bk=el('div','navitem'+(activeLab==='__backup__'?' active':'')); bk.appendChild(el('span',null,'💾 Backup'+(backupState==='ok'?' ✓':backupStale()?' ⚠︎':'')));
+    bk.onclick=()=>{activeLab='__backup__'; render();}; s.appendChild(bk); }
   // Wet-lab specimen tracker — only relevant to workspaces that bank tissue.
   // Shows once there are specimens, or when flags.specimens is turned on.
   if((DATA.specimens||[]).length||(DATA.flags||{}).specimens){
@@ -620,7 +686,7 @@ function renderSide(){
   sm.value=subMode; sm.onchange=()=>{subMode=sm.value; renderMain();}; smw.appendChild(sm); s.appendChild(smw);
   const foot=el('div','sidefoot');
   foot.appendChild(mkToggle('Hide completed tasks',hideCompleted,v=>{hideCompleted=v; renderMain();}));
-  const rb=el('button','btn ghost sm','📄 Weekly report'); rb.onclick=()=>window.open('/report?lab='+encodeURIComponent(activeLab),'_blank'); foot.appendChild(rb);
+  const rb=el('button','btn ghost sm','📄 Weekly report'); rb.onclick=()=>window.open('/report?lab='+encodeURIComponent(activeLab),'_blank'); if(!WEB) foot.appendChild(rb);
   const sb=el('div','savebadge','saved'); sb.id='savebadge'; foot.appendChild(sb); s.appendChild(foot);
 }
 function mkToggle(label,val,cb){ const w=el('label','toggle'); const c=el('input'); c.type='checkbox'; c.checked=val;
@@ -639,7 +705,8 @@ function labStats(lab){ let prio=0,acc=0,open=0;
   return {prio,acc,open}; }
 
 function renderMain(){
-  const m=$('#main'); m.innerHTML='';
+  const m=$('#main'); m.innerHTML=''; backupBanner(m);
+  if(activeLab==='__backup__'){ renderBackup(m); return; }
   if(activeLab==='__cv__'){ renderCV(m); return; }
   if(activeLab==='__import__'){ renderImport(m); return; }
   if(activeLab==='__assistant__'){ renderAssistant(m); return; }
@@ -2399,6 +2466,7 @@ function applyLLM(mt, changes){
 /* save + utils */
 function queueSave(){ const b=$('#savebadge'); if(b){b.className='savebadge dirty'; b.textContent='unsaved…';} clearTimeout(saveTimer); saveTimer=setTimeout(save,600); }
 async function save(){ const b=$('#savebadge');
+  if(WEB){ try{ await webSave(); if(b){b.className='savebadge ok'; b.textContent='saved '+DATA.updated;} }catch(e){ if(b){b.className='savebadge err'; b.textContent='save error';} console.error(e); } return; }
   try{ const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json','X-Base-Mtime':dataMtime||''},body:JSON.stringify(DATA)});
     if(r.status===409){ if(b){b.className='savebadge err'; b.textContent='newer data — reloaded';} await reloadFresh(); return; }
     const j=await r.json();

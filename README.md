@@ -8,7 +8,10 @@ Built for a medical trainee's arc: student → resident → attending. Projects 
 through stages, and the ones that reach the right stage surface on the CV in the
 right section on their own.
 
-**New here? Read [SETUP.md](SETUP.md).** One command, no dependencies. It adds a Dock icon, and you
+**Just want to use it? Open https://jonah-keller.github.io/ResearchOps/** — nothing to install; your data
+stays in your browser. For the full local version, read [SETUP.md](SETUP.md).
+
+**Installing locally?** One command, no dependencies. It adds a Dock icon, and you
 load your résumé by copy-pasting with any chat AI (ChatGPT, Claude, …) — no account or API key needed.
 
 ```bash

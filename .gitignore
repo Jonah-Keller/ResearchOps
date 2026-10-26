@@ -16,6 +16,12 @@
 
 !app/
 !app/index.html
+!app/manifest.webmanifest
+!app/sw.js
+!app/icon-192.png
+!app/icon-512.png
+!index.html
+!.nojekyll
 
 !seed/
 !seed/projects.json

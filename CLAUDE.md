@@ -19,6 +19,10 @@ data/config.json     API key, email app password. Not in git. Never read, print,
 start.sh             Seeds data on first run, picks a free port, opens browser.
 launch.sh            What the Dock icon runs: reuses a running server or starts one.
 tools/make_app.sh    Builds ~/Applications/ResearchOps.app and pins it to the Dock.
+index.html, .nojekyll  GitHub Pages entry (redirects to app/). Opened from Pages, the
+                     app runs in web mode (WEB): data in IndexedDB, 💾 Backup page,
+                     no server features. app/manifest.webmanifest + sw.js + icons make
+                     it installable.
 ```
 
 Everything except the files listed in `.gitignore`'s allowlist is untracked. The
