@@ -455,6 +455,23 @@
   .cv-eye.off{border-style:dashed;color:#c0392b;border-color:#c0392b}
   .cv-sec.cv-hidden > :not(.cv-h2wrap){opacity:.38}
   .cv-sec.cv-hidden .cv-h2{color:var(--faint);text-decoration:line-through}
+  /* CV density levels (d1 ⊂ d2 ⊂ d3), chosen in the CV bar or by "Fit to N pages". Nothing is hidden — only spacing and size change. */
+  .cv.d1 .cv-head{padding-bottom:7px} .cv.d1 .cv-sec{margin-top:11px} .cv.d1 .cv-h2{margin-bottom:4px;padding-bottom:2px} .cv.d1 .cv-h3{margin:6px 0 2px}
+  .cv.d1 .cv-entry{padding:1px 22px 2px 0} .cv.d1 .cv-pub{padding:2px 0 2px 20px;line-height:1.38} .cv.d1 .cv-kv{padding:0} .cv.d1 .cv-presmeta{padding:0}
+  .cv.d1 .cv-entry>.cv-kv:not(:has(.cv-paraval)){display:inline-flex;margin:0 14px 0 0} .cv.d1 .cv-entry>.cv-kv:not(:has(.cv-paraval)) .kk{flex:none}
+  .cv.d1 .cv-entry>:not(.cv-kv:not(:has(.cv-paraval)))+.cv-kv:not(:has(.cv-paraval)){margin-left:16px}
+  .cv.d2 .cv-name,.cv.d2 .cv-name .editable{font-size:23px} .cv.d2 .cv-t{font-size:12.5px} .cv.d2 .cv-pub{font-size:12px;line-height:1.33}
+  .cv.d2 .cv-kv,.cv.d2 .cv-block2,.cv.d2 .cv-sub,.cv.d2 .cv-contact{font-size:11.5px} .cv.d2 .cv-paraval,.cv.d2 .cv-block2{line-height:1.38}
+  .cv.d2 .cv-presmeta,.cv.d2 .cv-date,.cv.d2 .cv-date .editable,.cv.d2 .cv-status{font-size:11px} .cv.d2 .cv-h2{font-size:11.5px} .cv.d2 .cv-sec{margin-top:9px}
+  .cv.d3 .cv-t{font-size:11.5px} .cv.d3 .cv-pub{font-size:11px;line-height:1.28;padding:1px 0 1px 18px;text-indent:-18px}
+  .cv.d3 .cv-kv,.cv.d3 .cv-block2,.cv.d3 .cv-sub,.cv.d3 .cv-contact{font-size:10.5px} .cv.d3 .cv-paraval,.cv.d3 .cv-block2{line-height:1.3}
+  .cv.d3 .cv-presmeta,.cv.d3 .cv-date,.cv.d3 .cv-date .editable,.cv.d3 .cv-status{font-size:10.5px} .cv.d3 .cv-entry{padding:0 22px 1px 0} .cv.d3 .cv-sec{margin-top:7px}
+  /* page-count estimate: lay the CV out the way it prints (same things hidden as @media print) */
+  .measuring .cv{border:0!important;padding:0!important;max-width:none!important;border-radius:0!important}
+  .measuring .cv .lnkedit,.measuring .cv .cv-add,.measuring .cv .cv-del,.measuring .cv .cv-chips,.measuring .cv .cv-chip,.measuring .cv .cv-venuex,.measuring .cv .cv-eye,.measuring .cv .paste,
+  .measuring .cv .cv-sec.cv-hidden,.measuring .cv .cv-boldas,.measuring .cv .cv-target,.measuring .cv .cv-jsep.empty,.measuring .cv .cv-kv.empty,.measuring .cv .cv-sub.empty,.measuring .cv .cv-desc.empty,
+  .measuring .cv .cv-para.empty,.measuring .cv .cv-block2.empty,.measuring .cv .cv-date.empty,.measuring .cv .editable.empty{display:none!important}
+  .measuring .cv .editable{border:none!important;background:none!important}
   @media print{
     @page{margin:0.55in}
     html,body{background:#fff;color:#000;font-size:10.5pt}
@@ -1993,6 +2010,17 @@ function applyCVPreset(name){
   (CV_PRESETS[name]||[]).forEach(s=>H[s]=true);
   queueSave(); renderMain();
 }
+const CV_LEVELS=[{lbl:'Normal',m:0.55,c:''},{lbl:'Compact',m:0.5,c:'d1'},{lbl:'Compact+',m:0.45,c:'d1 d2'},{lbl:'Compact++',m:0.4,c:'d1 d2 d3'}];
+function applyCVDensity(cv,l){ cv.className='cv '+CV_LEVELS[l].c; let st=$('#cvpage'); if(!st){ st=el('style'); st.id='cvpage'; document.head.appendChild(st); } st.textContent='@page{margin:'+CV_LEVELS[l].m+'in}'; }
+function estimatePages(cv,l){ const m=CV_LEVELS[l].m; applyCVDensity(cv,l); document.body.classList.add('measuring'); cv.style.width=(8.5-2*m)+'in';
+  const h=cv.getBoundingClientRect().height; document.body.classList.remove('measuring'); cv.style.width=''; return h/((11-2*m)*96); }
+// profile.cvFit: 'l0'…'l3' = a fixed level, 'p<N>' = lightest level estimated to fit N pages
+function fitCV(cv,info){ const fit=PROF('cvFit')||'l0'; let lvl=0, est;
+  if(fit[0]==='p'){ const n=+fit.slice(1); lvl=CV_LEVELS.length-1; for(let l=0;l<CV_LEVELS.length;l++){ if(estimatePages(cv,l)<=n-0.04){ lvl=l; break; } } }
+  else lvl=Math.min(+fit.slice(1)||0,CV_LEVELS.length-1);
+  est=estimatePages(cv,lvl); applyCVDensity(cv,lvl);
+  const pages=Math.ceil(est-0.02); info.textContent='≈ '+pages+' page'+(pages>1?'s':'')+' · '+CV_LEVELS[lvl].lbl;
+  if(fit[0]==='p'&&pages>+fit.slice(1)){ info.textContent+=' — can’t reach '+fit.slice(1)+' pages without dropping content'; info.style.color='var(--red)'; } }
 function renderCV(m){
   const prof=DATA.profile||(DATA.profile={});
   const bar=el('div','cvbar');
@@ -2003,6 +2031,9 @@ function renderCV(m){
   bar.appendChild(mkPreset('🖨 Grant CV','grant'));
   const pr=el('button','btn ghost','⌘P — current view'); pr.title='Print exactly what you see now (respects the 👁 toggles)'; pr.onclick=()=>window.print(); bar.appendChild(pr);
   bar.appendChild(el('span','hint','Presets pick which sections print · fine-tune with each section’s 👁 · edits live in each lab tab'));
+  const fsel=el('select','gmsel'); [['l0','Normal'],['l1','Compact'],['l2','Compact+'],['l3','Compact++'],...[2,3,4,5,6,7,8].map(n=>['p'+n,'Fit to '+n+' pages'])].forEach(([v,t])=>fsel.appendChild(optn(v,t)));
+  fsel.value=PROF('cvFit')||'l0'; fsel.title='Tighter spacing and type to shorten the CV — nothing is left off'; fsel.onchange=()=>{ prof.cvFit=fsel.value; queueSave(); renderMain(); };
+  const finfo=el('span','hint'); bar.appendChild(fsel); bar.appendChild(finfo);
   m.appendChild(bar);
   m.appendChild(renderMissing());
 
@@ -2086,6 +2117,7 @@ function renderCV(m){
   ls.appendChild(cvAddBtn('Activities',null,'+ Add'));
 
   m.appendChild(cv);
+  fitCV(cv,finfo);
   wireCitationBuilder();
 }
 
