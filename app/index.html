@@ -455,23 +455,34 @@
   .cv-eye.off{border-style:dashed;color:#c0392b;border-color:#c0392b}
   .cv-sec.cv-hidden > :not(.cv-h2wrap){opacity:.38}
   .cv-sec.cv-hidden .cv-h2{color:var(--faint);text-decoration:line-through}
-  /* CV density levels (d1 ⊂ d2 ⊂ d3), chosen in the CV bar or by "Fit to N pages". Nothing is hidden — only spacing and size change. */
-  .cv.d1 .cv-head{padding-bottom:7px} .cv.d1 .cv-sec{margin-top:11px} .cv.d1 .cv-h2{margin-bottom:4px;padding-bottom:2px} .cv.d1 .cv-h3{margin:6px 0 2px}
-  .cv.d1 .cv-entry{padding:1px 22px 2px 0} .cv.d1 .cv-pub{padding:2px 0 2px 20px;line-height:1.38} .cv.d1 .cv-kv{padding:0} .cv.d1 .cv-presmeta{padding:0}
-  .cv.d1 .cv-entry>.cv-kv:not(:has(.cv-paraval)){display:inline-flex;margin:0 14px 0 0} .cv.d1 .cv-entry>.cv-kv:not(:has(.cv-paraval)) .kk{flex:none}
-  .cv.d1 .cv-entry>:not(.cv-kv:not(:has(.cv-paraval)))+.cv-kv:not(:has(.cv-paraval)){margin-left:16px}
-  .cv.d2 .cv-name,.cv.d2 .cv-name .editable{font-size:23px} .cv.d2 .cv-t{font-size:12.5px} .cv.d2 .cv-pub{font-size:12px;line-height:1.33}
-  .cv.d2 .cv-kv,.cv.d2 .cv-block2,.cv.d2 .cv-sub,.cv.d2 .cv-contact{font-size:11.5px} .cv.d2 .cv-paraval,.cv.d2 .cv-block2{line-height:1.38}
-  .cv.d2 .cv-presmeta,.cv.d2 .cv-date,.cv.d2 .cv-date .editable,.cv.d2 .cv-status{font-size:11px} .cv.d2 .cv-h2{font-size:11.5px} .cv.d2 .cv-sec{margin-top:9px}
-  .cv.d3 .cv-t{font-size:11.5px} .cv.d3 .cv-pub{font-size:11px;line-height:1.28;padding:1px 0 1px 18px;text-indent:-18px}
-  .cv.d3 .cv-kv,.cv.d3 .cv-block2,.cv.d3 .cv-sub,.cv.d3 .cv-contact{font-size:10.5px} .cv.d3 .cv-paraval,.cv.d3 .cv-block2{line-height:1.3}
-  .cv.d3 .cv-presmeta,.cv.d3 .cv-date,.cv.d3 .cv-date .editable,.cv.d3 .cv-status{font-size:10.5px} .cv.d3 .cv-entry{padding:0 22px 1px 0} .cv.d3 .cv-sec{margin-top:7px}
+  /* Compact CV ("classic academic" layout, CC). Labels give way to hierarchy: title — role · amount … date, an italic
+     institution · location line, then the description. One base size (--ccf) per level; everything else is in em. */
+  .cv.cc{font-size:var(--ccf)} .cv.cc.c1{--ccf:12.5px} .cv.cc.c2{--ccf:12px} .cv.cc.c3{--ccf:11.5px}
+  .cv.cc .cv-head{padding-bottom:.45em;margin-bottom:0} .cv.cc .cv-name,.cv.cc .cv-name .editable{font-size:1.75em}
+  .cv.cc .cv-cred,.cv.cc .cv-contact{font-size:.92em;margin-top:.2em}
+  .cv.cc .cv-sec{margin-top:.8em} .cv.cc .cv-h2{font-size:.92em;margin-bottom:.3em;padding-bottom:.12em}
+  .cv.cc .cv-h3{font-size:.8em;margin:.45em 0 .1em}
+  .cv.cc .cv-add,.cv.cc .cv-chips{display:none}
+  .cc-entry{position:relative;padding:.12em 0 .22em}
+  .cc-row{display:flex;gap:10px;align-items:baseline} .cc-t{flex:1;min-width:0;font-weight:600} .cc-role{font-weight:400}
+  .cc-date{flex:none;white-space:nowrap;color:var(--muted);font-size:.92em}
+  .cc-meta{font-style:italic;color:var(--muted);font-size:.95em;margin-left:1.2em;line-height:1.3}
+  .cc-desc,.cc-line{margin-left:1.2em;font-size:.95em;color:var(--muted);line-height:1.3} .cc-line .kk{font-weight:600;color:var(--muted)}
+  .cc-desc .editable{display:inline}
+  .cv.cc .cv-pub{font-size:.96em;line-height:1.3;padding:.12em 0 .12em 1.6em;text-indent:-1.6em}
+  .cv.cc .cv-entry{padding:.1em 22px .18em 0} .cv.cc .cv-prestitle,.cv.cc .cv-prestitle .editable{font-size:.96em}
+  .cv.cc .cv-presmeta{font-size:.9em;padding:0;margin-left:1.2em} .cv.cc .cv-sub{font-size:.9em}
+  /* venue row children: conference, year, status, ·, type, authorship, distinction, × → "AAIC 2026 · Presented · Poster · 1st author · Award" */
+  .cv.cc .cv-presmeta{gap:0} .cv.cc .cv-presmeta>.sep{display:none}
+  .cv.cc .cv-presmeta>:nth-child(1)::after{content:" ";white-space:pre}
+  .cv.cc .cv-presmeta>:nth-child(2)::after,.cv.cc .cv-presmeta>:nth-child(3)::after,.cv.cc .cv-presmeta>:nth-child(5)::after{content:" · ";white-space:pre}
+  .cv.cc .cv-presmeta>.cv-distinction:not(:has(.empty))::before{content:" · ";white-space:pre;font-style:normal}
   /* page-count estimate: lay the CV out the way it prints (same things hidden as @media print) */
   .measuring .cv{border:0!important;padding:0!important;max-width:none!important;border-radius:0!important}
   .measuring .cv .lnkedit,.measuring .cv .cv-add,.measuring .cv .cv-del,.measuring .cv .cv-chips,.measuring .cv .cv-chip,.measuring .cv .cv-venuex,.measuring .cv .cv-eye,.measuring .cv .paste,
   .measuring .cv .cv-sec.cv-hidden,.measuring .cv .cv-boldas,.measuring .cv .cv-target,.measuring .cv .cv-jsep.empty,.measuring .cv .cv-kv.empty,.measuring .cv .cv-sub.empty,.measuring .cv .cv-desc.empty,
   .measuring .cv .cv-para.empty,.measuring .cv .cv-block2.empty,.measuring .cv .cv-date.empty,.measuring .cv .editable.empty{display:none!important}
-  .measuring .cv .editable{border:none!important;background:none!important}
+  .measuring .cv .editable{border:none!important;background:none!important;padding:0!important}
   @media print{
     @page{margin:0.55in}
     html,body{background:#fff;color:#000;font-size:10.5pt}
@@ -483,7 +494,7 @@
     .cv-sec,.cv-entry,.cv-item,.cv-pub,.cv-h2,.cv-h3{break-inside:auto;page-break-inside:auto}
     .cv-h2,.cv-h3{break-after:avoid;page-break-after:avoid}
     .cv-tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .editable{border:none!important;background:none!important}
+    .editable{border:none!important;background:none!important;padding:0!important}
     .lnkedit,.cv-add,.cv-del,.cv-chips,.cv-chip,.cv-venuex{display:none!important}
     .cv-boldas,.cv-target,.cv-jsep.empty,.cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
     .paste{display:none!important}
@@ -1857,11 +1868,11 @@ const RES_FIELDS=[{key:'position',label:'Position:',ph:'position / title',chip:'
 const EXP_FIELDS=[{key:'position',label:'Role:',ph:'role / position',chip:'Role'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'pi',label:'Mentors:',ph:'mentor',chip:'Mentors',multi:true},{key:'note',para:true,ph:'description',chip:'Description'},{key:'links',label:'Press:',links:true,chip:'Press'}];
 const HON_FIELDS=[{key:'org',para:true,ph:'detail',chip:'Detail'},{key:'score',label:'Score:',ph:'e.g. 528/528',chip:'Score'},{key:'amount',label:'Award:',ph:'$—',chip:'Award'},{key:'note',para:true,ph:'description',chip:'Description'}];
 const PEER_FIELDS=[{key:'org',sub:true,ph:'role (e.g. Reviewer)',chip:'Role'},{key:'note',block:true,ph:'manuscript / topic reviewed',chip:'Note'},{key:'doi',label:'Status / DOI:',ph:'e.g. in press · or doi:10.…',chip:'DOI'}];
-const renderEduItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'institution',datePh:'period',fields:EDU_FIELDS});
-const renderResItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'Lab of …',datePh:'period',fields:RES_FIELDS});
-const renderExpItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'organization',datePh:'period',fields:EXP_FIELDS});
-const renderHonorItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'award / honor',datePh:'year',fields:HON_FIELDS});
-const renderPeerItem=(arr,e)=>renderCVEntry(arr,e,{titlePh:'journal',datePh:'year',fields:PEER_FIELDS});
+const renderEduItem=(arr,e)=>CC?ccEdu(arr,e):renderCVEntry(arr,e,{titlePh:'institution',datePh:'period',fields:EDU_FIELDS});
+const renderResItem=(arr,e)=>CC?ccRes(arr,e):renderCVEntry(arr,e,{titlePh:'Lab of …',datePh:'period',fields:RES_FIELDS});
+const renderExpItem=(arr,e)=>CC?ccExp(arr,e):renderCVEntry(arr,e,{titlePh:'organization',datePh:'period',fields:EXP_FIELDS});
+const renderHonorItem=(arr,e)=>CC?ccHonor(arr,e):renderCVEntry(arr,e,{titlePh:'award / honor',datePh:'year',fields:HON_FIELDS});
+const renderPeerItem=(arr,e)=>CC?ccPeer(arr,e):renderCVEntry(arr,e,{titlePh:'journal',datePh:'year',fields:PEER_FIELDS});
 function cvYearKey(s){ s=String(s||''); const ys=(s.match(/\d{4}/g)||[]).map(Number);
   if(/present|current/i.test(s)) return 1000000+(ys.length?ys[0]:0);
   return ys.length?ys[ys.length-1]:0; }
@@ -1952,7 +1963,7 @@ function addPresentation(){
   queueSave(); renderMain();
 }
 const GRANT_STAGE_LBL={planning:'In preparation',applying:'Submitted',submitted:'Submitted','under review':'Under review',awarded:'Awarded',rejected:'Rejected','not eligible':'Not eligible'};
-function renderGrantRow(g){
+function renderGrantRow(g){ if(CC) return ccGrant(g);
   const it=el('div','cv-entry');
   const tr=el('div','cv-titlerow');
   const t=el('span','cv-t'); t.appendChild(editText(()=>g.name||'',v=>{g.name=v;},{ph:'award / grant name'})); tr.appendChild(t);
@@ -2010,18 +2021,48 @@ function applyCVPreset(name){
   (CV_PRESETS[name]||[]).forEach(s=>H[s]=true);
   queueSave(); renderMain();
 }
-const CV_LEVELS=[{lbl:'Normal',m:0.55,c:''},{lbl:'Compact',m:0.5,c:'d1'},{lbl:'Compact+',m:0.45,c:'d1 d2'},{lbl:'Compact++',m:0.4,c:'d1 d2 d3'}];
+const CV_LEVELS=[{lbl:'Normal',m:0.55,c:''},{lbl:'Compact',m:0.55,c:'cc c1'},{lbl:'Compact+',m:0.5,c:'cc c2'},{lbl:'Compact++',m:0.45,c:'cc c3'}];
+let CC=false;   // true while renderCV draws the compact (classic) layout; item renderers below switch on it
 function applyCVDensity(cv,l){ cv.className='cv '+CV_LEVELS[l].c; let st=$('#cvpage'); if(!st){ st=el('style'); st.id='cvpage'; document.head.appendChild(st); } st.textContent='@page{margin:'+CV_LEVELS[l].m+'in}'; }
 function estimatePages(cv,l){ const m=CV_LEVELS[l].m; applyCVDensity(cv,l); document.body.classList.add('measuring'); cv.style.width=(8.5-2*m)+'in';
   const h=cv.getBoundingClientRect().height; document.body.classList.remove('measuring'); cv.style.width=''; return h/((11-2*m)*96); }
-// profile.cvFit: 'l0'…'l3' = a fixed level, 'p<N>' = lightest level estimated to fit N pages
-function fitCV(cv,info){ const fit=PROF('cvFit')||'l0'; let lvl=0, est;
-  if(fit[0]==='p'){ const n=+fit.slice(1); lvl=CV_LEVELS.length-1; for(let l=0;l<CV_LEVELS.length;l++){ if(estimatePages(cv,l)<=n-0.04){ lvl=l; break; } } }
-  else lvl=Math.min(+fit.slice(1)||0,CV_LEVELS.length-1);
-  est=estimatePages(cv,lvl); applyCVDensity(cv,lvl);
-  const pages=Math.ceil(est-0.02); info.textContent='≈ '+pages+' page'+(pages>1?'s':'')+' · '+CV_LEVELS[lvl].lbl;
-  if(fit[0]==='p'&&pages>+fit.slice(1)){ info.textContent+=' — can’t reach '+fit.slice(1)+' pages without dropping content'; info.style.color='var(--red)'; } }
-function renderCV(m){
+// Compact entry: title — role · suffix …… date / italic meta · meta / description / "Label value · Label value" lines
+const has=(o,k)=>String(o[k]||'').trim()!=='';
+function ccEntry(arr,e,o){
+  const it=el('div','cc-entry'), r=el('div','cc-row'), t=el('span','cc-t');
+  t.appendChild(eT(e,o.title||'title','title'));
+  if(o.role&&has(e,o.role)){ t.appendChild(document.createTextNode(' — ')); const rs=el('span','cc-role'); rs.appendChild(eT(e,o.role,'')); t.appendChild(rs); }
+  (o.suffix||[]).forEach(k=>{ if(!has(e,k))return; t.appendChild(document.createTextNode(' · ')); const sp=el('span','cc-role'); sp.appendChild(eT(e,k,'')); t.appendChild(sp); });
+  r.appendChild(t); const d=el('span','cc-date'); d.appendChild(eT(e,o.date||'date','')); r.appendChild(d); it.appendChild(r);
+  if(arr) it.appendChild(cvDel(arr,e));
+  const meta=(o.meta||[]).map(x=>Array.isArray(x)?x:[x,'']).filter(([k])=>has(e,k));
+  if(meta.length){ const md=el('div','cc-meta'); meta.forEach(([k,pre],i)=>{ if(i)md.appendChild(document.createTextNode(' · ')); if(pre)md.appendChild(document.createTextNode(pre)); md.appendChild(eT(e,k,'')); }); it.appendChild(md); }
+  (o.desc||[]).forEach(k=>{ if(!has(e,k))return; const dd=el('div','cc-desc'); dd.appendChild(editSci(()=>e[k]||'',x=>{e[k]=x;},{area:true})); it.appendChild(dd); });
+  let tail=o.lineTail;   // e.g. a grant's status, appended to its first detail line
+  (o.lines||[]).forEach(line=>{ const ls=line.filter(([,k])=>has(e,k)); if(!ls.length)return; const ln=el('div','cc-line');
+    ls.forEach(([l,k],i)=>{ if(i)ln.appendChild(document.createTextNode(' · ')); if(l)ln.appendChild(el('span','kk',l+' ')); ln.appendChild(eT(e,k,'')); });
+    if(tail){ ln.appendChild(tail); tail=null; } it.appendChild(ln); });
+  if(tail){ const ln=el('div','cc-line'); ln.appendChild(tail); it.appendChild(ln); }
+  if(o.links&&(e.links||[]).length){ const ln=el('div','cc-line'); ln.appendChild(el('span','kk','Press: ')); e.links.forEach((l,i)=>{ if(i)ln.appendChild(document.createTextNode(' · ')); ln.appendChild(entryLink(e,'links',l)); }); it.appendChild(ln); }
+  return it; }
+const ccEdu=(arr,e)=>ccEntry(arr,e,{role:'org',meta:['city',['gpa','GPA ']],desc:['note'],lines:[[['Awards:','awards']],[['Activities:','activities']]]});
+const ccRes=(arr,e)=>ccEntry(arr,e,{role:'position',meta:['institution','city'],desc:['note'],lines:[[['Supervisor:','supervisor']]]});
+const ccExp=(arr,e)=>ccEntry(arr,e,{role:'position',meta:['city'],desc:['note'],lines:[[['Mentors:','pi']]],links:true});
+const ccHonor=(arr,e)=>ccEntry(arr,e,{suffix:['amount','score'],desc:['org','note']});
+const ccPeer=(arr,e)=>ccEntry(arr,e,{role:'org',desc:['note'],lines:[[['','doi']]]});
+function ccGrant(g){ if(!has(g,'year')) g.year=((g.deadline||g.hearback||'').match(/\d{4}/)||[''])[0]||'';
+  const st=el('span','cc-role'); st.appendChild(document.createTextNode(' · ')); st.appendChild(selValue(()=>g.status,v=>{g.status=v;},GRANT_STATUS,GRANT_STAGE_LBL));
+  return ccEntry(DATA.grants,g,{title:'name',date:'year',suffix:['amount'],lineTail:st,desc:['project','note','contribution'],lines:[[['Applicant:','owner']],[['Mentor:','mentor']]]}); }
+// profile.cvFit: 'l0' Normal · 'l1'…'l3' a compact level · 'p<N>' the lightest layout estimated to fit N pages
+function fitCV(cv,info){ const fit=PROF('cvFit')||'l0'; let lvl;
+  if(fit[0]==='p'){ const n=+fit.slice(1); if(!CC){ lvl=0; } else { lvl=CV_LEVELS.length-1; for(let l=1;l<CV_LEVELS.length;l++){ if(estimatePages(cv,l)<=n-0.04){ lvl=l; break; } } } }
+  else lvl=CC?Math.min(Math.max(+fit.slice(1)||1,1),CV_LEVELS.length-1):0;
+  const est=estimatePages(cv,lvl); applyCVDensity(cv,lvl);
+  const pages=Math.ceil(est-0.02); info.textContent='≈ '+pages+' page'+(pages>1?'s':'')+' · '+CV_LEVELS[lvl].lbl+(CC?' — switch to Normal to add or delete items':'');
+  if(fit[0]==='p'&&pages>+fit.slice(1)){ info.textContent+=' — can’t reach '+fit.slice(1)+' pages without dropping content'; info.style.color='var(--red)'; }
+  return est; }
+function renderCV(m,cc){
+  const fitSel=PROF('cvFit')||'l0'; CC=cc!==undefined?cc:(fitSel!=='l0'&&fitSel[0]!=='p'); const host=m; m=el('div'); host.appendChild(m);
   const prof=DATA.profile||(DATA.profile={});
   const bar=el('div','cvbar');
   const mkPreset=(label,name)=>{ const b=el('button','btn'+(name==='full'?'':' ghost'),label);
@@ -2117,7 +2158,8 @@ function renderCV(m){
   ls.appendChild(cvAddBtn('Activities',null,'+ Add'));
 
   m.appendChild(cv);
-  fitCV(cv,finfo);
+  const est=fitCV(cv,finfo); CC=false;
+  if(cc===undefined&&fitSel[0]==='p'&&Math.ceil(est-0.02)>+fitSel.slice(1)){ m.remove(); renderCV(host,true); return; }
   wireCitationBuilder();
 }
 
