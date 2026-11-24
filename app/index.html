@@ -1934,13 +1934,9 @@ function collectPosters(){
   });
   return out;
 }
-const CONF_FULL={AAIC:'Alzheimer’s Association International Conference',AAN:'American Academy of Neurology Annual Meeting',CNS:'Congress of Neurological Surgeons Annual Meeting',SNIS:'Society of NeuroInterventional Surgery Annual Meeting',SVIN:'Society of Vascular and Interventional Neurology Annual Meeting',CureHHT:'HHT International Scientific Conference',AANS:'American Association of Neurological Surgeons Annual Meeting'};
-let confSeen=new Set();   // reset per CV render
 function renderVenueRow(p,ps,pr){
   const row=el('div','cv-presmeta');
-  const cw=el('span'); const full=CONF_FULL[pr.conference]; const first=full&&!confSeen.has(pr.conference); if(pr.conference)confSeen.add(pr.conference);
-  if(first) cw.appendChild(document.createTextNode(full+' (')); cw.appendChild(selectOrOther(()=>pr.conference,v=>{pr.conference=v;},CONFS,'conference')); if(first) cw.appendChild(document.createTextNode(')'));
-  row.appendChild(cw);   // spelled out the first time each meeting appears
+  row.appendChild(selectOrOther(()=>pr.conference,v=>{pr.conference=v;},CONFS,'conference'));   // printed exactly as entered (acronyms)
   row.appendChild(editText(()=>pr.date||'',v=>{pr.date=v;},{ph:'year'}));
   const stw=selValue(()=>pr.status,v=>{pr.status=v;},PRES_STATUS,PRES_STATUS_LBL); if(pr.status==='presented') stw.classList.add('cv-st-presented'); row.appendChild(stw);   // "Presented" is the default, so only "Accepted" prints
   row.appendChild(el('span','sep','·'));
@@ -2154,7 +2150,7 @@ function renderCV(m,cc){
   if(!anyPub) cvNone(pubSec,'Publications are pulled from projects with a manuscript stage (Manuscript Preparation → Accepted).');
 
   // ---- Abstracts & Presentations ----
-  const preSec=cvSection(cv,'Abstracts & Presentations'); confSeen=new Set();
+  const preSec=cvSection(cv,'Abstracts & Presentations');
   collectPosters().forEach(x=>preSec.appendChild(renderPosterEntry(x)));
   const pab=el('button','cv-add','+ Add presentation'); pab.onclick=addPresentation; preSec.appendChild(pab);
 
