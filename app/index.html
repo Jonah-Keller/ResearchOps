@@ -481,7 +481,7 @@
   /* page-count estimate: lay the CV out the way it prints (same things hidden as @media print) */
   .measuring .cv{border:0!important;padding:0!important;max-width:none!important;border-radius:0!important}
   .measuring .cv .lnkedit,.measuring .cv .cv-add,.measuring .cv .cv-del,.measuring .cv .cv-chips,.measuring .cv .cv-chip,.measuring .cv .cv-venuex,.measuring .cv .cv-eye,.measuring .cv .paste,
-  .measuring .cv .cv-st-presented,.measuring .cv .cv-sec.cv-hidden,.measuring .cv .cv-boldas,.measuring .cv .cv-target,.measuring .cv .cv-jsep.empty,.measuring .cv .cv-kv.empty,.measuring .cv .cv-sub.empty,.measuring .cv .cv-desc.empty,
+  .measuring .cv .cv-noprint,.measuring .cv .cv-st-presented,.measuring .cv .cv-sec.cv-hidden,.measuring .cv .cv-boldas,.measuring .cv .cv-target,.measuring .cv .cv-jsep.empty,.measuring .cv .cv-kv.empty,.measuring .cv .cv-sub.empty,.measuring .cv .cv-desc.empty,
   .measuring .cv .cv-para.empty,.measuring .cv .cv-block2.empty,.measuring .cv .cv-date.empty,.measuring .cv .editable.empty{display:none!important}
   .measuring .cv .editable{border:none!important;background:none!important;padding:0!important}
   @media print{
@@ -497,7 +497,7 @@
     .cv-tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .editable{border:none!important;background:none!important;padding:0!important}
     .lnkedit,.cv-add,.cv-del,.cv-chips,.cv-chip,.cv-venuex{display:none!important}
-    .cv-st-presented,.cv-boldas,.cv-target,.cv-jsep.empty,.cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
+    .cv-noprint,.cv-st-presented,.cv-boldas,.cv-target,.cv-jsep.empty,.cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
     .paste{display:none!important}
   }
   @media(max-width:720px){.app{flex-direction:column}.side{position:static;height:auto;width:100%}.miss ul{columns:1}}
@@ -1868,7 +1868,7 @@ function renderCVEntry(arr,e,opts){
 const EDU_FIELDS=[{key:'org',label:'Degree:',ph:'degree',chip:'Degree'},{key:'score',label:'Score:',ph:'e.g. 528/528',chip:'Score'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'gpa',label:'GPA:',ph:'e.g. 3.95 / 4.00',chip:'GPA'},{key:'awards',label:'Awards:',para:true,ph:'—',chip:'Awards'},{key:'activities',label:'Activities:',para:true,ph:'—',chip:'Activities'},{key:'note',para:true,ph:'description',chip:'Description'}];
 const RES_FIELDS=[{key:'position',label:'Position:',ph:'position / title',chip:'Position'},{key:'institution',label:'Institution:',ph:'institution',chip:'Institution'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'supervisor',label:'Supervisor:',ph:'direct supervisor',chip:'Supervisor'},{key:'note',para:true,ph:'description of work',chip:'Description'}];
 const EXP_FIELDS=[{key:'position',label:'Role:',ph:'role / position',chip:'Role'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'pi',label:'Mentors:',ph:'mentor',chip:'Mentors',multi:true},{key:'note',para:true,ph:'description',chip:'Description'},{key:'links',label:'Press:',links:true,chip:'Press'}];
-const HON_FIELDS=[{key:'org',para:true,ph:'detail',chip:'Detail'},{key:'score',label:'',ph:'e.g. Perfect Score (528/528)',chip:'Score'},{key:'amount',label:'Award:',ph:'$—',chip:'Award'},{key:'note',para:true,ph:'description',chip:'Description'}];
+const HON_FIELDS=[{key:'org',para:true,ph:'detail',chip:'Detail'},{key:'score',label:'',para:true,ph:'e.g. Perfect Score (528/528)',chip:'Score'},{key:'amount',label:'Award:',ph:'$—',chip:'Award'},{key:'note',para:true,ph:'description',chip:'Description'}];
 const PEER_FIELDS=[{key:'org',sub:true,ph:'role (e.g. Reviewer)',chip:'Role'},{key:'note',block:true,ph:'manuscript / topic reviewed',chip:'Note'},{key:'doi',label:'Status / DOI:',ph:'e.g. in press · or doi:10.…',chip:'DOI'}];
 const renderEduItem=(arr,e)=>CC?ccEdu(arr,e):renderCVEntry(arr,e,{titlePh:'institution',datePh:'period',fields:EDU_FIELDS});
 const renderResItem=(arr,e)=>CC?ccRes(arr,e):renderCVEntry(arr,e,{titlePh:'Lab of …',datePh:'period',fields:RES_FIELDS});
@@ -1975,8 +1975,7 @@ function renderGrantRow(g){ if(CC) return ccGrant(g);
   it.appendChild(tr); it.appendChild(cvDel(DATA.grants,g));
   const arow=el('div','cv-kv'); arow.appendChild(el('span','kk','Applicant:'));
   const av=el('span'); av.appendChild(editText(()=>g.owner!==undefined?g.owner:'',v=>{g.owner=v;},{ph:'applicant / PI'}));
-  av.appendChild(el('span','sep',' · '));
-  const stg=el('span','cv-status'); stg.appendChild(selValue(()=>g.status,v=>{g.status=v;},GRANT_STATUS,GRANT_STAGE_LBL)); av.appendChild(stg);
+  const stg=el('span','cv-status cv-noprint'); stg.appendChild(el('span','sep',' · ')); stg.appendChild(selValue(()=>g.status,v=>{g.status=v;},GRANT_STATUS,GRANT_STAGE_LBL)); av.appendChild(stg);   // status is for tracking; the CV only lists awarded grants
   arow.appendChild(av); it.appendChild(arow);
   fieldRows(it,g,[{key:'project',label:'Title:',para:true,ph:'project / work title',chip:'Title'},{key:'note',label:'Description:',para:true,ph:'description of the work',chip:'Description'},{key:'amount',label:'Amount:',ph:'$—',chip:'Amount'},{key:'mentor',label:'Mentor:',ph:'mentor',chip:'Mentor'},{key:'contribution',label:'Contribution:',ph:'how I contributed',chip:'Contribution'}]);
   return it;
@@ -2055,7 +2054,7 @@ const ccExp=(arr,e)=>ccEntry(arr,e,{role:'position',meta:['city'],desc:['note'],
 const ccHonor=(arr,e)=>ccEntry(arr,e,{suffix:['amount','score'],desc:['org','note']});
 const ccPeer=(arr,e)=>ccEntry(arr,e,{role:'org',desc:['note'],lines:[[['','doi']]]});
 function ccGrant(g){ if(!has(g,'year')) g.year=((g.deadline||g.hearback||'').match(/\d{4}/)||[''])[0]||'';
-  const st=el('span','cc-role'); st.appendChild(document.createTextNode(' · ')); st.appendChild(selValue(()=>g.status,v=>{g.status=v;},GRANT_STATUS,GRANT_STAGE_LBL));
+  const st=el('span','cc-role cv-noprint'); st.appendChild(document.createTextNode(' · ')); st.appendChild(selValue(()=>g.status,v=>{g.status=v;},GRANT_STATUS,GRANT_STAGE_LBL));
   return ccEntry(DATA.grants,g,{title:'name',date:'year',suffix:['amount'],lineTail:st,desc:['project','note','contribution'],lines:[[['Applicant:','owner']],[['Mentor:','mentor']]]}); }
 // profile.cvFit: 'l0' Normal · 'l1'…'l3' a compact level · 'p<N>' the lightest layout estimated to fit N pages
 function fitCV(cv,info){ const fit=PROF('cvFit')||'l0'; let lvl;
