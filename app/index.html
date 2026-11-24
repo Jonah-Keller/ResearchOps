@@ -435,7 +435,7 @@
   .cv-add{margin:6px 0 2px;font-size:12px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:3px 11px;cursor:pointer}
   .cv-add:hover{border-color:var(--accent);color:var(--accent)}
   .cv-status{color:var(--muted);font-size:12px;font-style:italic}
-  .cv-target{opacity:.55}
+  .cv-target{opacity:.55} .cv-yrdot{display:none} @media print{.cv-yrdot{display:inline!important}} .measuring .cv .cv-yrdot{display:inline!important} .cv-fn{margin:2px 0 4px}
   .cv-datestack{display:flex;flex-direction:column;align-items:flex-end;flex:none;text-align:right;gap:1px}
   .cv-prestitle{font-style:italic;text-align:left} .cv-prestitle .editable{font-weight:400;font-style:italic;display:block;text-align:left}
   .cv-prestitle i{font-style:normal}  /* Latin term inside an italic title → roman */
@@ -476,11 +476,12 @@
   .cv.cc .cv-presmeta{gap:0} .cv.cc .cv-presmeta>.sep{display:none}
   .cv.cc .cv-presmeta>:nth-child(1)::after{content:" ";white-space:pre}
   .cv.cc .cv-presmeta>:nth-child(2)::after,.cv.cc .cv-presmeta>:nth-child(3)::after,.cv.cc .cv-presmeta>:nth-child(5)::after{content:" · ";white-space:pre}
+  .cv.cc .cv-presmeta>.cv-pres:not(:has(.empty))::before{content:" ";white-space:pre}
   .cv.cc .cv-presmeta>.cv-distinction:not(:has(.empty))::before{content:" · ";white-space:pre;font-style:normal}
   /* page-count estimate: lay the CV out the way it prints (same things hidden as @media print) */
   .measuring .cv{border:0!important;padding:0!important;max-width:none!important;border-radius:0!important}
   .measuring .cv .lnkedit,.measuring .cv .cv-add,.measuring .cv .cv-del,.measuring .cv .cv-chips,.measuring .cv .cv-chip,.measuring .cv .cv-venuex,.measuring .cv .cv-eye,.measuring .cv .paste,
-  .measuring .cv .cv-sec.cv-hidden,.measuring .cv .cv-boldas,.measuring .cv .cv-target,.measuring .cv .cv-jsep.empty,.measuring .cv .cv-kv.empty,.measuring .cv .cv-sub.empty,.measuring .cv .cv-desc.empty,
+  .measuring .cv .cv-st-presented,.measuring .cv .cv-sec.cv-hidden,.measuring .cv .cv-boldas,.measuring .cv .cv-target,.measuring .cv .cv-jsep.empty,.measuring .cv .cv-kv.empty,.measuring .cv .cv-sub.empty,.measuring .cv .cv-desc.empty,
   .measuring .cv .cv-para.empty,.measuring .cv .cv-block2.empty,.measuring .cv .cv-date.empty,.measuring .cv .editable.empty{display:none!important}
   .measuring .cv .editable{border:none!important;background:none!important;padding:0!important}
   @media print{
@@ -496,7 +497,7 @@
     .cv-tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .editable{border:none!important;background:none!important;padding:0!important}
     .lnkedit,.cv-add,.cv-del,.cv-chips,.cv-chip,.cv-venuex{display:none!important}
-    .cv-boldas,.cv-target,.cv-jsep.empty,.cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
+    .cv-st-presented,.cv-boldas,.cv-target,.cv-jsep.empty,.cv-kv.empty,.cv-sub.empty,.cv-desc.empty,.cv-para.empty,.cv-block2.empty,.cv-date.empty,.editable.empty{display:none!important}
     .paste{display:none!important}
   }
   @media(max-width:720px){.app{flex-direction:column}.side{position:static;height:auto;width:100%}.miss ul{columns:1}}
@@ -1683,7 +1684,8 @@ function abbrevAuthors(a){
   a=(a||'').replace(/\s*\(\d{4}\)\s*$/,'').trim(); if(!a) return a;
   if(a.includes('…')||a.includes('...')) return a.replace(/([A-Za-z])\./g,'$1');   // already abbreviated → just unify (drop initial periods)
   let parts=a.split(/,\s*/).map(s=>s.trim()).filter(Boolean).map(toAMA);
-  if(parts.length<=3) return parts.join(', ');
+  const amp=xs=>xs.length>1?xs.slice(0,-1).join(', ')+' & '+xs[xs.length-1]:xs.join('');   // "A, B & C"
+  if(parts.length<=3) return amp(parts);
   const last=parts.length-1;
   const mk=s=>(String(s).match(/[\*\^†#]+$/)||[''])[0];
   // co-senior: if the last two share an equal-contribution marker, show both as the tail
@@ -1692,7 +1694,7 @@ function abbrevAuthors(a){
   const tailJoin=h=> h+', … '+(tail.includes(' & ')?tail:'& '+tail);
   const ki=parts.findIndex(p=>isMeName(p));
   if(ki<0) return tailJoin(parts[0]);
-  if(tailStart-ki<=1) return parts.join(', ');                // I'm adjacent to the tail → show all
+  if(tailStart-ki<=1) return amp(parts);                      // I'm adjacent to the tail → show all
   if(ki<=6) return tailJoin(parts.slice(0,ki+1).join(', '));  // top 7 → list up to me
   return tailJoin(parts[0]+', … '+parts[ki]);                 // deep middle → first … me … & tail
 }
@@ -1863,7 +1865,7 @@ function renderCVEntry(arr,e,opts){
   fieldRows(it,e,opts.fields||[]);
   return it;
 }
-const EDU_FIELDS=[{key:'org',label:'Degree:',ph:'degree',chip:'Degree'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'gpa',label:'GPA:',ph:'e.g. 3.95 / 4.00',chip:'GPA'},{key:'awards',label:'Awards:',para:true,ph:'—',chip:'Awards'},{key:'activities',label:'Activities:',para:true,ph:'—',chip:'Activities'},{key:'note',para:true,ph:'description',chip:'Description'}];
+const EDU_FIELDS=[{key:'org',label:'Degree:',ph:'degree',chip:'Degree'},{key:'score',label:'Score:',ph:'e.g. 528/528',chip:'Score'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'gpa',label:'GPA:',ph:'e.g. 3.95 / 4.00',chip:'GPA'},{key:'awards',label:'Awards:',para:true,ph:'—',chip:'Awards'},{key:'activities',label:'Activities:',para:true,ph:'—',chip:'Activities'},{key:'note',para:true,ph:'description',chip:'Description'}];
 const RES_FIELDS=[{key:'position',label:'Position:',ph:'position / title',chip:'Position'},{key:'institution',label:'Institution:',ph:'institution',chip:'Institution'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'supervisor',label:'Supervisor:',ph:'direct supervisor',chip:'Supervisor'},{key:'note',para:true,ph:'description of work',chip:'Description'}];
 const EXP_FIELDS=[{key:'position',label:'Role:',ph:'role / position',chip:'Role'},{key:'city',label:'Location:',ph:'City, State',chip:'Location'},{key:'pi',label:'Mentors:',ph:'mentor',chip:'Mentors',multi:true},{key:'note',para:true,ph:'description',chip:'Description'},{key:'links',label:'Press:',links:true,chip:'Press'}];
 const HON_FIELDS=[{key:'org',para:true,ph:'detail',chip:'Detail'},{key:'score',label:'Score:',ph:'e.g. 528/528',chip:'Score'},{key:'amount',label:'Award:',ph:'$—',chip:'Award'},{key:'note',para:true,ph:'description',chip:'Description'}];
@@ -1900,9 +1902,9 @@ const CVPUB_LBL=Object.assign({},STAGE_LBL,{accepted:'In Press',published:'In Pr
 function renderPubItem(p){
   const pt=p.tracks.paper||(p.tracks.paper={status:'',items:[]}); const d=el('div','cv-pub'); const b=pubBucket(p);
   d.appendChild(editRich(()=>pt.authors?boldMe(abbrevAuthors(pt.authors)):'', ()=>pt.authors||'', v=>{pt.authors=v;}, {ph:'[author list]'}));
-  d.appendChild(document.createTextNode(' ('));
-  d.appendChild(editText(()=>pt.year||'', v=>{pt.year=v;}, {ph:'year'}));
-  d.appendChild(document.createTextNode('). '));
+  const noYr=b==='prep'||b==='submission';   // unpublished: the year would be a projection, so it isn't printed
+  const yw=el('span',noYr?'cv-target':null); yw.appendChild(document.createTextNode(' (')); yw.appendChild(editText(()=>pt.year||'', v=>{pt.year=v;}, {ph:'year'})); yw.appendChild(document.createTextNode('). ')); d.appendChild(yw);
+  if(noYr) d.appendChild(el('span','cv-yrdot','. '));
   d.appendChild(editSci(()=>pt.full_title||'', v=>{pt.full_title=v;}, {ph:p.name+' — add title', area:true}));
   d.appendChild(document.createTextNode('. '));
   const tgt=(b==='prep'||b==='submission')&&!pt.journalOnCV; const jw=el('span',tgt?'cv-target':null);
@@ -1919,26 +1921,32 @@ function collectPosters(){
     if(!vis.length) return;
     out.push({p,ps,vis});
   }));
-  const yof=arr=>Math.max(0,...arr.map(pr=>parseInt((String(pr.date).match(/20\d\d/)||[])[0])||0));
+  const MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  const when=pr=>{ const s=String(pr.date||''); const y=parseInt((s.match(/(?:19|20)\d\d/)||[])[0])||0; const m=MON[(s.match(/[A-Za-z]{3}/)||[''])[0].toLowerCase()]||0; return y*100+m; };
+  const yof=arr=>Math.max(0,...arr.map(when));   // latest meeting of the abstract
   const AR={'first':0,'co-first':1,'second':2,'third':3,'middle':4};
-  const SR=pr=>(pr.some(x=>x.status==='presented')?0:pr.some(x=>x.status==='accepted')?1:2);
-  out.sort((a,b)=>{                                    // presented → accepted → rest, then year desc → conference asc → author position
-    const ds=SR(a.vis)-SR(b.vis); if(ds) return ds;
+  const lastConf=x=>(x.vis.slice().sort((u,v)=>when(v)-when(u))[0]||{}).conference||'';
+  out.sort((a,b)=>{                                    // latest meeting first (year, then month if given) → same meeting together → author position
     const dy=yof(b.vis)-yof(a.vis); if(dy) return dy;
-    const c=((a.vis[0]||{}).conference||'').toLowerCase().localeCompare(((b.vis[0]||{}).conference||'').toLowerCase()); if(c) return c;
+    const c=lastConf(a).toLowerCase().localeCompare(lastConf(b).toLowerCase()); if(c) return c;
     const best=x=>Math.min(...x.vis.map(pr=>AR[pr.authorship||x.ps.authorship]??9));
     return best(a)-best(b);
   });
   return out;
 }
+const CONF_FULL={AAIC:'Alzheimer’s Association International Conference',AAN:'American Academy of Neurology Annual Meeting',CNS:'Congress of Neurological Surgeons Annual Meeting',SNIS:'Society of NeuroInterventional Surgery Annual Meeting',SVIN:'Society of Vascular and Interventional Neurology Annual Meeting',CureHHT:'HHT International Scientific Conference',AANS:'American Association of Neurological Surgeons Annual Meeting'};
+let confSeen=new Set();   // reset per CV render
 function renderVenueRow(p,ps,pr){
   const row=el('div','cv-presmeta');
-  row.appendChild(selectOrOther(()=>pr.conference,v=>{pr.conference=v;},CONFS,'conference'));
+  const cw=el('span'); const full=CONF_FULL[pr.conference]; const first=full&&!confSeen.has(pr.conference); if(pr.conference)confSeen.add(pr.conference);
+  if(first) cw.appendChild(document.createTextNode(full+' (')); cw.appendChild(selectOrOther(()=>pr.conference,v=>{pr.conference=v;},CONFS,'conference')); if(first) cw.appendChild(document.createTextNode(')'));
+  row.appendChild(cw);   // spelled out the first time each meeting appears
   row.appendChild(editText(()=>pr.date||'',v=>{pr.date=v;},{ph:'year'}));
-  row.appendChild(selValue(()=>pr.status,v=>{pr.status=v;},PRES_STATUS,PRES_STATUS_LBL));
+  const stw=selValue(()=>pr.status,v=>{pr.status=v;},PRES_STATUS,PRES_STATUS_LBL); if(pr.status==='presented') stw.classList.add('cv-st-presented'); row.appendChild(stw);   // "Presented" is the default, so only "Accepted" prints
   row.appendChild(el('span','sep','·'));
   row.appendChild(selValue(()=>pr.type||ps.type||'Poster',v=>{pr.type=v;},PTYPES,null));   // type is per venue (same abstract can be a poster at one meeting, a platform at another)
   row.appendChild(selValue(()=>pr.authorship||ps.authorship,v=>{pr.authorship=v;},AUTH,AUTH_LBL));   // authorship is per venue too
+  const pw=el('span','cv-pres'); pw.appendChild(selValue(()=>pr.presenter?'yes':'',v=>{pr.presenter=v==='yes';},['','yes'],{'':'+ presenter?',yes:'(presenter)'})); row.appendChild(pw);   // delivered it myself vs. contributing author
   const dw=el('span','cv-distinction'); dw.appendChild(editText(()=>pr.note||'',v=>{pr.note=v;},{ph:'+ distinction'})); row.appendChild(dw);
   const x=el('button','cv-venuex','×'); x.title='remove this venue';
   x.onclick=()=>{ ps.presentations=(ps.presentations||[]).filter(z=>z!==pr); if(!ps.presentations.length)p.posters=(p.posters||[]).filter(z=>z!==ps); queueSave(); renderMain(); };
@@ -2045,7 +2053,7 @@ function ccEntry(arr,e,o){
   if(tail){ const ln=el('div','cc-line'); ln.appendChild(tail); it.appendChild(ln); }
   if(o.links&&(e.links||[]).length){ const ln=el('div','cc-line'); ln.appendChild(el('span','kk','Press: ')); e.links.forEach((l,i)=>{ if(i)ln.appendChild(document.createTextNode(' · ')); ln.appendChild(entryLink(e,'links',l)); }); it.appendChild(ln); }
   return it; }
-const ccEdu=(arr,e)=>ccEntry(arr,e,{role:'org',meta:['city',['gpa','GPA ']],desc:['note'],lines:[[['Awards:','awards']],[['Activities:','activities']]]});
+const ccEdu=(arr,e)=>ccEntry(arr,e,{role:'org',suffix:['score'],meta:['city',['gpa','GPA ']],desc:['note'],lines:[[['Awards:','awards']],[['Activities:','activities']]]});
 const ccRes=(arr,e)=>ccEntry(arr,e,{role:'position',meta:['institution','city'],desc:['note'],lines:[[['Supervisor:','supervisor']]]});
 const ccExp=(arr,e)=>ccEntry(arr,e,{role:'position',meta:['city'],desc:['note'],lines:[[['Mentors:','pi']]],links:true});
 const ccHonor=(arr,e)=>ccEntry(arr,e,{suffix:['amount','score'],desc:['org','note']});
@@ -2138,12 +2146,14 @@ function renderCV(m,cc){
   let anyPub=false;
   subs.forEach(([k,lbl])=>{ if(!buckets[k].length)return; anyPub=true;
     pubSec.appendChild(el('div','cv-h3',lbl));
-    buckets[k].slice().sort((a,b)=>pubYear(b)-pubYear(a)).forEach(p=>pubSec.appendChild(renderPubItem(p))); });
-  if(anyPub&&DATA.projects.some(p=>pubBucket(p)&&/\*/.test((p.tracks.paper||{}).authors||''))) pubSec.appendChild(el('div','cv-sub','* Equal contribution.'));
+    buckets[k].slice().sort((a,b)=>pubYear(b)-pubYear(a)).forEach(p=>pubSec.appendChild(renderPubItem(p)));
+    const au=buckets[k].map(p=>(p.tracks.paper||{}).authors||'').join(' '), fn=[];
+    if(/\*/.test(au)) fn.push('* Equal contribution.'); if(/†/.test(au)) fn.push('† Co-senior authors.');
+    if(fn.length) pubSec.appendChild(el('div','cv-sub cv-fn',fn.join('  '))); });
   if(!anyPub) cvNone(pubSec,'Publications are pulled from projects with a manuscript stage (Manuscript Preparation → Accepted).');
 
   // ---- Abstracts & Presentations ----
-  const preSec=cvSection(cv,'Abstracts & Presentations');
+  const preSec=cvSection(cv,'Abstracts & Presentations'); confSeen=new Set();
   collectPosters().forEach(x=>preSec.appendChild(renderPosterEntry(x)));
   const pab=el('button','cv-add','+ Add presentation'); pab.onclick=addPresentation; preSec.appendChild(pab);
 
