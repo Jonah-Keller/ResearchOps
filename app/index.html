@@ -1925,7 +1925,7 @@ function collectPosters(){
   const when=pr=>{ const s=String(pr.date||''); const y=parseInt((s.match(/(?:19|20)\d\d/)||[])[0])||0; const m=MON[(s.match(/[A-Za-z]{3}/)||[''])[0].toLowerCase()]||0; return y*100+m; };
   const yof=arr=>Math.max(0,...arr.map(when));   // latest meeting of the abstract
   const AR={'first':0,'co-first':1,'second':2,'third':3,'middle':4};
-  const lastConf=x=>(x.vis.slice().sort((u,v)=>when(v)-when(u))[0]||{}).conference||'';
+  const lastConf=x=>(x.vis.slice().reverse().sort((u,v)=>when(v)-when(u))[0]||{}).conference||'';   // ties → the last-listed venue (usually the most recent meeting)
   out.sort((a,b)=>{                                    // latest meeting first (year, then month if given) → same meeting together → author position
     const dy=yof(b.vis)-yof(a.vis); if(dy) return dy;
     const c=lastConf(a).toLowerCase().localeCompare(lastConf(b).toLowerCase()); if(c) return c;
@@ -2147,9 +2147,10 @@ function renderCV(m,cc){
   subs.forEach(([k,lbl])=>{ if(!buckets[k].length)return; anyPub=true;
     pubSec.appendChild(el('div','cv-h3',lbl));
     buckets[k].slice().sort((a,b)=>pubYear(b)-pubYear(a)).forEach(p=>pubSec.appendChild(renderPubItem(p)));
-    const au=buckets[k].map(p=>(p.tracks.paper||{}).authors||'').join(' '), fn=[];
-    if(/\*/.test(au)) fn.push('* Equal contribution.'); if(/†/.test(au)) fn.push('† Co-senior authors.');
-    if(fn.length) pubSec.appendChild(el('div','cv-sub cv-fn',fn.join('  '))); });
+  });
+  const au=Object.values(buckets).flat().map(p=>(p.tracks.paper||{}).authors||'').join(' '), fn=[];   // one key, after the last subsection
+  if(/\*/.test(au)) fn.push('* Co-first authors.'); if(/†/.test(au)) fn.push('† Co-senior authors.');
+  if(fn.length) pubSec.appendChild(el('div','cv-sub cv-fn',fn.join('  ')));
   if(!anyPub) cvNone(pubSec,'Publications are pulled from projects with a manuscript stage (Manuscript Preparation → Accepted).');
 
   // ---- Abstracts & Presentations ----
